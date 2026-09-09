@@ -35,6 +35,7 @@
   },
   "pending": {
     "title": "Noch nicht umgesetzt",
-    "body": "Diese Ansicht entsteht in TASK-001. Bis dahin liegt die lauffähige Vorlage unter legacy/."
+    "body": "Diese Ansicht entsteht in TASK-001. Bis dahin läuft hier die ursprüngliche Fassung.",
+    "open": "Ursprüngliche Fassung öffnen"
   }
 }

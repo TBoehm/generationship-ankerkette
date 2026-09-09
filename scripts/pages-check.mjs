@@ -39,6 +39,17 @@ if (!existsSync(indexPath)) {
   }
 }
 
+const LEGACY = [
+  'generationenschiff-grundriss.html',
+  'flug-3d-proxima.html',
+  'flugbahn-alpha-centauri.html',
+];
+for (const document of LEGACY) {
+  if (!existsSync(resolve(DIST, 'legacy', document))) {
+    problems.push(`dist/legacy/${document} is missing, the view linking to it would 404`);
+  }
+}
+
 if (!existsSync(resolve(DIST, '.nojekyll'))) {
   problems.push('dist/.nojekyll is missing, Jekyll would drop underscore directories');
 }

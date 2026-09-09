@@ -35,6 +35,7 @@
   },
   "pending": {
     "title": "Not implemented yet",
-    "body": "This view is built in TASK-001. Until then the working original lives under legacy/."
+    "body": "This view is built in TASK-001. Until then the original version runs here.",
+    "open": "Open the original version"
   }
 }

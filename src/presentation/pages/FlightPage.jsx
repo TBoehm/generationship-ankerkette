@@ -2,5 +2,5 @@
 import PendingView from '../components/PendingView.jsx';
 
 export default function FlightPage() {
-  return <PendingView />;
+  return <PendingView legacyDocument="flug-3d-proxima.html" />;
 }

@@ -2,5 +2,5 @@
 import PendingView from '../components/PendingView.jsx';
 
 export default function ShipPage() {
-  return <PendingView />;
+  return <PendingView legacyDocument="generationenschiff-grundriss.html" />;
 }
