@@ -9,7 +9,11 @@
   padding-right: var(--safe-right);
 }
 
-.presentation > * {
+/* The chrome takes the pointer, the gap between the plate and the dock does
+   not: that gap is where the model is turned, and a spacer that captures
+   would swallow every drag before the canvas underneath ever sees it. */
+.presentation__plate,
+.presentation__dock {
   pointer-events: auto;
 }
 
@@ -41,6 +45,7 @@
 .presentation__spacer {
   flex: 1;
   min-height: 0;
+  pointer-events: none;
 }
 
 .presentation__dock {

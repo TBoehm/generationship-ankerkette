@@ -3,8 +3,13 @@ import { createStage } from './stage.js';
 import { TRANSITION_DURATION_MS } from '../../domain/usecases/viewTransition.js';
 
 function makeRenderer() {
+  const domElement = document.createElement('canvas');
+  // jsdom has no pointer capture; the stage must cope with that anyway,
+  // because a browser can refuse capture for a pointer that is already gone.
+  domElement.setPointerCapture = vi.fn();
+  domElement.releasePointerCapture = vi.fn();
   return {
-    domElement: document.createElement('canvas'),
+    domElement,
     render: vi.fn(),
     clear: vi.fn(),
     clearDepth: vi.fn(),
@@ -242,5 +247,136 @@ describe('dispose', () => {
     stage.dispose();
     stage.dispose();
     expect(renderer.dispose).toHaveBeenCalledTimes(1);
+  });
+});
+
+function pointer(type, { x = 0, y = 0, button = 0, pointerId = 1 } = {}) {
+  const event = new MouseEvent(type, {
+    clientX: x,
+    clientY: y,
+    button,
+    bubbles: true,
+    cancelable: true,
+  });
+  Object.defineProperty(event, 'pointerId', { value: pointerId });
+  return event;
+}
+
+function drag(canvas, from, to, options = {}) {
+  canvas.dispatchEvent(pointer('pointerdown', { ...from, ...options }));
+  canvas.dispatchEvent(pointer('pointermove', { ...to, ...options }));
+  canvas.dispatchEvent(pointer('pointerup', { ...to, ...options }));
+}
+
+describe('the canvas is actually wired to the pointer', () => {
+  it('turns the active scene when the mouse is dragged across it', () => {
+    const { stage, renderer, flight } = setup();
+    stage.step(0);
+    drag(renderer.domElement, { x: 100, y: 100 }, { x: 140, y: 130 });
+    expect(flight.handleDrag).toHaveBeenCalledWith(40, 30);
+  });
+
+  it('turns on a middle button drag too, which is what a desktop mouse offers', () => {
+    const { stage, renderer, flight } = setup();
+    stage.step(0);
+    drag(renderer.domElement, { x: 10, y: 10 }, { x: 30, y: 10 }, { button: 1 });
+    expect(flight.handleDrag).toHaveBeenCalledWith(20, 0);
+  });
+
+  it('leaves the right button alone, so the context menu still works', () => {
+    const { stage, renderer, flight } = setup();
+    stage.step(0);
+    drag(renderer.domElement, { x: 10, y: 10 }, { x: 60, y: 10 }, { button: 2 });
+    expect(flight.handleDrag).not.toHaveBeenCalled();
+  });
+
+  it('does not turn anything while no button is held', () => {
+    const { stage, renderer, flight } = setup();
+    stage.step(0);
+    renderer.domElement.dispatchEvent(pointer('pointermove', { x: 200, y: 200 }));
+    expect(flight.handleDrag).not.toHaveBeenCalled();
+  });
+
+  it('reports each move as a delta, not as an absolute position', () => {
+    const { stage, renderer, flight } = setup();
+    stage.step(0);
+    const canvas = renderer.domElement;
+    canvas.dispatchEvent(pointer('pointerdown', { x: 0, y: 0 }));
+    canvas.dispatchEvent(pointer('pointermove', { x: 10, y: 0 }));
+    canvas.dispatchEvent(pointer('pointermove', { x: 25, y: 0 }));
+    expect(flight.handleDrag.mock.calls).toEqual([
+      [10, 0],
+      [15, 0],
+    ]);
+  });
+
+  it('treats a release under the tap threshold as a tap, not a turn', () => {
+    const { stage, renderer, flight } = setup();
+    stage.step(0);
+    drag(renderer.domElement, { x: 50, y: 50 }, { x: 52, y: 51 });
+    expect(flight.handleTap).toHaveBeenCalled();
+    expect(flight.handleTap.mock.calls[0].slice(0, 2)).toEqual([52, 51]);
+  });
+
+  it('treats a release past the threshold as a turn, not a tap', () => {
+    const { stage, renderer, flight } = setup();
+    stage.step(0);
+    drag(renderer.domElement, { x: 50, y: 50 }, { x: 90, y: 90 });
+    expect(flight.handleTap).not.toHaveBeenCalled();
+  });
+
+  it('zooms on the wheel and stops the page from scrolling with it', () => {
+    const { stage, renderer, flight } = setup();
+    stage.step(0);
+    const event = new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true });
+    renderer.domElement.dispatchEvent(event);
+    expect(flight.handleZoom).toHaveBeenCalled();
+    expect(flight.handleZoom.mock.calls[0][0]).toBeGreaterThan(1);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('zooms the other way when the wheel turns the other way', () => {
+    const { stage, renderer, flight } = setup();
+    stage.step(0);
+    renderer.domElement.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, cancelable: true }));
+    expect(flight.handleZoom.mock.calls[0][0]).toBeLessThan(1);
+  });
+
+  it('routes the pointer to whichever scene currently owns the input', () => {
+    const { stage, renderer, ship, flight } = setup({ reducedMotion: true });
+    stage.setFocus('ship');
+    stage.step(0);
+    drag(renderer.domElement, { x: 0, y: 0 }, { x: 40, y: 0 });
+    expect(ship.handleDrag).toHaveBeenCalledWith(40, 0);
+    expect(flight.handleDrag).not.toHaveBeenCalled();
+  });
+
+  it('stops listening once disposed', () => {
+    const { stage, renderer, flight } = setup();
+    stage.step(0);
+    stage.dispose();
+    drag(renderer.domElement, { x: 0, y: 0 }, { x: 40, y: 0 });
+    renderer.domElement.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, cancelable: true }));
+    expect(flight.handleDrag).not.toHaveBeenCalled();
+    expect(flight.handleZoom).not.toHaveBeenCalled();
+  });
+
+  it('releases the pointer capture on cancel, which the ship document never did', () => {
+    const { stage, renderer } = setup();
+    stage.step(0);
+    const canvas = renderer.domElement;
+    canvas.dispatchEvent(pointer('pointerdown', { x: 0, y: 0, pointerId: 7 }));
+    canvas.dispatchEvent(pointer('pointercancel', { x: 0, y: 0, pointerId: 7 }));
+    expect(canvas.releasePointerCapture).toHaveBeenCalledWith(7);
+  });
+
+  it('drops the drag on cancel instead of turning on the next move', () => {
+    const { stage, renderer, flight } = setup();
+    stage.step(0);
+    const canvas = renderer.domElement;
+    canvas.dispatchEvent(pointer('pointerdown', { x: 0, y: 0 }));
+    canvas.dispatchEvent(pointer('pointercancel', { x: 0, y: 0 }));
+    canvas.dispatchEvent(pointer('pointermove', { x: 80, y: 0 }));
+    expect(flight.handleDrag).not.toHaveBeenCalled();
   });
 });
