@@ -9,12 +9,15 @@ import ShipReadout from '../components/ShipReadout.jsx';
 import FlightControls from '../components/FlightControls.jsx';
 import SectionSheet from '../components/SectionSheet.jsx';
 import { EMPTY_SELECTION, select } from '../../domain/usecases/selection.js';
-import { advanceDistance, chapterAt, readoutAt } from '../../domain/usecases/flightPresentation.js';
+import {
+  advancePlayback,
+  chapterAt,
+  isPlaybackComplete,
+  readoutAt,
+} from '../../domain/usecases/flightPresentation.js';
 import { MISSION } from '../../domain/constants/missionProfile.js';
 import { ROUTES } from '../../domain/constants/routes.js';
 import './PresentationPage.css';
-
-const PLAYBACK_YEARS_PER_SECOND = 6;
 
 const focusForPath = (pathname) => (pathname === ROUTES.ship ? 'ship' : 'flight');
 
@@ -79,11 +82,8 @@ export default function PresentationPage() {
     let previous = null;
     const step = (timestamp) => {
       if (previous !== null) {
-        const years = ((timestamp - previous) / 1000) * PLAYBACK_YEARS_PER_SECOND;
-        setDistance((current) => {
-          const next = current + advanceDistance(current, years);
-          return next >= MISSION.totalDistance ? MISSION.totalDistance : next;
-        });
+        const seconds = (timestamp - previous) / 1000;
+        setDistance((current) => advancePlayback(current, seconds));
       }
       previous = timestamp;
       frame = requestAnimationFrame(step);
@@ -93,7 +93,7 @@ export default function PresentationPage() {
   }, [playing]);
 
   useEffect(() => {
-    if (distance >= MISSION.totalDistance) setPlaying(false);
+    if (isPlaybackComplete(distance)) setPlaying(false);
   }, [distance]);
 
   const chooseFocus = (next) => {
