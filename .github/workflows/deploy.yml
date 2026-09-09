@@ -26,11 +26,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run qa
+      # Pages has to be switched on once by hand, under
+      # Settings -> Pages -> Source: GitHub Actions. A workflow cannot do it
+      # for itself: creating the site needs administration write, which is
+      # not a scope the permissions block can grant to GITHUB_TOKEN.
       - uses: actions/configure-pages@v5
-        with:
-          # Turns Pages on for the repository on the first run instead of
-          # failing until someone sets it by hand.
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

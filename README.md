@@ -54,7 +54,13 @@ Tickets, specs, commit messages and pull request text are German, and so is
 
 ## Publishing
 
-A push to `main` builds, checks, publishes to GitHub Pages, then tags and releases.
+Pages has to be switched on once by hand, under Settings, Pages, Source: GitHub
+Actions. A workflow cannot do it for itself, because creating the site needs
+administration write and that is not a scope the permissions block can grant to
+`GITHUB_TOKEN`.
+
+After that, a push to `main` builds, checks, publishes to GitHub Pages, then tags
+and releases.
 The base path is `/generationship-ankerkette/`. `404.html` ships as a copy of
 `index.html`, otherwise every reload on a sub-route would 404. `pages:check`
 verifies both against the built output.
