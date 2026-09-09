@@ -98,8 +98,97 @@ Trockenmasse 539.000 t, mit Tankfüllung 779.000 t, davon zugeordnet 715.000 t:
 | Kernbrennstoff | 600 t | 0,1 % |
 
 Schwerster Einzelposten ist das Bugschild mit 150.000 t (3 m Wassereis über 53.100 m²
-Frontfläche plus Whipple-Lagen). Das ist zugleich die unsicherste Zahl im Entwurf,
-weil belastbare Daten zur integrierten Staubfluenz über 385 Jahre bei 1 % c fehlen.
+Frontfläche plus Whipple-Lagen). Reines Eis über diese Fläche wiegt 146.078 t, die
+Differenz sind die Whipple-Lagen.
+
+**Achtung, Geometrie stimmt nicht überein:** 53.100 m² entsprechen einem Kreis von
+260 m Durchmesser, der Rumpf misst aber 280 m. Der Rumpfquerschnitt beträgt 61.575 m²,
+es bleibt ein 10 m breiter Ring von 8.475 m² ungedeckt. Entweder liegt das Schild
+absichtlich nur über dem Druckkörper und der Mantelrand wird anders geschützt, oder
+die Fläche gehört auf 61.575 m² und die Schildmasse auf ca. 169.000 t korrigiert.
+Ungeklärt.
+
+## Prüfung des Bugschilds
+
+Die 3 m sind nachgerechnet. Ergebnis: sie sind **nicht durch Erosion begründet**,
+sondern durch Strahlung. Als Erosionsschild wären Zentimeter genug, als Schutz gegen
+galaktische kosmische Strahlung sind die 3 m großzügig, aber für 18 Generationen
+vertretbar.
+
+### Energieeintrag je Streckenabschnitt
+Flächenbezogene Trefferenergie ½·(ρ·s)·v², Staubdichten aus Grün-Modell (Zodiakalstaub),
+New-Horizons-SDC (Kuiper) und Ulysses/Galileo-Fluss (interstellarer Staub).
+
+| Abschnitt | v beim Durchflug | Staubsäule | Energie | Anteil |
+|---|---|---|---|---|
+| Asteroidengürtel 2,1 bis 3,3 AE | 51 km/s | 2,5·10⁻⁸ kg/m² | 32 J/m² | 0,0054 % |
+| Kuipergürtel 30 bis 50 AE | 195 km/s | 3,0·10⁻⁹ kg/m² | 57 J/m² | 0,0095 % |
+| Proxima-Staubgürtel 1 bis 4 AE | 38 km/s | 4,5·10⁻⁹ kg/m² | 3 J/m² | 0,0005 % |
+| **interstellare Marschstrecke** | **2.998 km/s** | **1,3·10⁻⁷ kg/m²** | **5,96·10⁵ J/m²** | **100 %** |
+
+Alle drei Gürtel zusammen liegen unter 0,02 % der Marschstrecke. Das ist kein
+Rundungsfehler im Entwurf, sondern eine Eigenschaft des Flugprofils: die 30 Jahre
+Beschleunigung und 50 Jahre Bremsung liegen genau dort, wo der Staub sitzt, deshalb
+wird jeder Gürtel langsam durchflogen.
+
+| Ort | Geschwindigkeit |
+|---|---|
+| 2,1 AE (Beginn Asteroidengürtel) | 45 km/s |
+| 3,3 AE (Ende) | 56 km/s |
+| Jupiter, 5,2 AE | 70 km/s |
+| Neptun, 30 AE | 169 km/s |
+| 50 AE (Ende Kuipergürtel) | 218 km/s |
+| 100 AE Restweg (einlaufend) | 239 km/s |
+| 4 AE Restweg | 48 km/s |
+| Proxima b | 5 km/s |
+
+**Die Start- und Endgeschwindigkeiten müssen also nicht angepasst werden.** Ein
+Bremsen vor den Gürteln würde 0,02 % der Belastung gegen ein Vielfaches an Reisezeit
+tauschen.
+
+### Abtrag über die volle Strecke
+Staub, Verdampfungsenergie Q (3·10⁶ J/kg ist volle Kopplung mit Sublimationswärme,
+10⁹ J/kg berücksichtigt, dass der größte Teil der Energie als Plasma und Strahlung
+wieder abgeht):
+
+| Q [J/kg] | Abtrag |
+|---|---|
+| 3·10⁶ | 0,217 mm |
+| 10⁷ | 0,065 mm |
+| 10⁸ | 0,007 mm |
+| 10⁹ | 0,001 mm |
+
+Gas: Protonenfluenz 8,0·10²¹ je m² (n_H = 0,2 cm⁻³). Bei Sputterausbeuten von 1 bis
+100 H₂O je Proton sind das 0,0003 bis 0,026 mm. Die 47-keV-Protonen bleiben nach
+etwa 1 µm im Eis stecken, sie durchdringen nichts.
+
+Abtrag insgesamt also **deutlich unter einem Millimeter**, bei jeder vertretbaren
+Annahme. Ein Erosionsschild bräuchte Zentimeter, nicht Meter.
+
+### Was die 3 m wirklich leisten
+2.751 kg/m², also **275 g/cm²**. Empfohlen werden gegen galaktische kosmische
+Strahlung 20 bis 100 g/cm², das Schild liegt beim 2,8-fachen der oberen Empfehlung.
+Das ist die eigentliche Begründung der Dicke, nicht der Staub. Es deckt allerdings
+nur die Frontfläche ab, die seitliche Abschirmung des Habitatmantels ist davon
+unberührt.
+
+### Der offene Rest: seltene große Körner
+Über die gesamte Reise fängt die Frontfläche zusammen **7,1 g** interstellaren Staub
+ab. Die Verteilung dieser Masse über die Korngrößen ist die einzige wirklich offene
+Frage. Unter der Annahme, dass 1 % der Masse in einer Korngröße steckt:
+
+| Kornradius | Masse je Korn | Energie je Treffer | erwartete Treffer |
+|---|---|---|---|
+| 0,01 mm | 1,0·10⁻¹¹ kg | 47 J | 6,7 Mio. |
+| 0,1 mm | 1,0·10⁻⁸ kg | 4,7·10⁴ J | 6.700 |
+| 1 mm | 1,0·10⁻⁵ kg | 4,7·10⁷ J (11 kg TNT) | 7 |
+| 5 mm | 1,3·10⁻³ kg | 5,9·10⁹ J (1,4 t TNT) | 0,05 |
+
+Ein Millimeterkorn schlägt einen lokalen Krater, den 3 m Eis aushalten; sieben davon
+in 385 Jahren sind reparierbar. Ein Fünf-Millimeter-Korn wäre ein Strukturschaden,
+und ob es eines gibt, hängt an einer Verteilung, die niemand bei diesen Größen
+gemessen hat. Die Gegenmaßnahme ist Vorausdetektion und seitliches Ausweichen um
+Meter, nicht mehr Eis.
 
 ## Bauphase
 
@@ -273,7 +362,9 @@ der Portierung, sie werden nicht mehr weiterentwickelt.
    Das ist die einzige bekannte Inkonsistenz zwischen den Dateien.
 2. Die beiden Artefakte sind getrennt. Eine Zusammenführung (aus der Reiseansicht
    ins Schiff hineinzoomen) wäre der nächste logische Schritt.
-3. Die Bugschild-Dicke von 3 m ist eine Schätzung ohne belastbare Fluenzdaten.
+3. Die Bugschild-Dicke von 3 m ist als Strahlungsschild begründet (275 g/cm²), nicht
+   als Erosionsschild. Offen bleibt die Größenverteilung des interstellaren Staubs
+   oberhalb eines Millimeters, siehe "Prüfung des Bugschilds".
 4. Im Schiffsgrundriss fehlen die Sektionen von Ring B auf der 3D-Ebene
    noch als eigene Klickziele pro Sektor, aktuell ist nur je Deck auswählbar.
 5. Die Systemansicht springt bei der Halbstrecke hart zwischen Sonne und Proxima
@@ -283,3 +374,5 @@ der Portierung, sie werden nicht mehr weiterentwickelt.
    8 %. Beides ist Rundung in dieser Datei, der Code rechnet die exakten Werte.
 7. TASK-001 portiert die beiden Szenen. Bis dahin zeigen `/ship` und `/flight` nur
    einen Platzhalter, die lauffähigen Vorlagen liegen unter `legacy/`.
+8. Die Schildfläche von 53.100 m² passt zu 260 m Durchmesser, der Rumpf misst 280 m.
+   Ein 10 m breiter Ring ist damit rechnerisch ungedeckt.
