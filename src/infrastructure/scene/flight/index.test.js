@@ -496,13 +496,15 @@ describe('emphasised against true sizes', () => {
   });
 
   it('changes the bodies in system view as well, where it used to do nothing', () => {
+    // Measured on Mercury, not on Jupiter: the largest planet is the anchor
+    // both settings share, so it is the one body that must not move.
     const { scene } = mount();
     scene.setDistance(30);
     scene.setCameraMode('system');
     scene.setBoostSizes(true);
-    const emphasised = scaleOf(scene, 'jupiter');
+    const emphasised = scaleOf(scene, 'mercury');
     scene.setBoostSizes(false);
-    expect(scaleOf(scene, 'jupiter')).not.toBeCloseTo(emphasised, 6);
+    expect(scaleOf(scene, 'mercury')).not.toBeCloseTo(emphasised, 6);
   });
 
   it('shows the real radius ratio in system view when sizes are true', () => {
@@ -528,14 +530,16 @@ describe('emphasised against true sizes', () => {
     expect(scaleOf(scene, 'jupiter') / scaleOf(scene, 'mercury')).toBeGreaterThan(spread * 5);
   });
 
-  it('keeps earth as the yardstick, unchanged by the toggle', () => {
+  it('shrinks the earth along with everything below the largest planet', () => {
+    // Earth used to be the yardstick, which is what made true sizes inflate
+    // every world above it. The yardstick is the largest planet now.
     const { scene } = mount();
     scene.setDistance(30);
     scene.setCameraMode('system');
     scene.setBoostSizes(true);
     const emphasised = scaleOf(scene, 'earth');
     scene.setBoostSizes(false);
-    expect(scaleOf(scene, 'earth')).toBeCloseTo(emphasised, 9);
+    expect(scaleOf(scene, 'earth')).toBeLessThan(emphasised);
   });
 });
 
@@ -707,5 +711,72 @@ describe('the ship stays findable while a planet is circled', () => {
     const projected = world.clone().project(scene.camera);
     const onScreen = Math.abs(projected.x) <= 1 && Math.abs(projected.y) <= 1 && projected.z < 1;
     expect(onScreen).toBe(false);
+  });
+});
+
+describe('true sizes shrink the system rather than inflating it', () => {
+  const scaleOf = (scene, id) => {
+    let found = null;
+    scene.root.traverse((object) => {
+      if (object.name === id) found = object;
+    });
+    return found.scale.x;
+  };
+
+  const systemScene = () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode('system');
+    return scene;
+  };
+
+  const planetIds = PLANETS.map((planet) => planet.id);
+
+  it('keeps the largest planet the same size in both settings', () => {
+    // The toggle changes how far apart the sizes are, not how big the whole
+    // system is drawn. Anchoring on Earth instead made Jupiter five times
+    // larger on the way to true sizes, which reads as the opposite of true.
+    const scene = systemScene();
+    scene.setBoostSizes(true);
+    const emphasised = scaleOf(scene, 'jupiter');
+    scene.setBoostSizes(false);
+    expect(scaleOf(scene, 'jupiter')).toBeCloseTo(emphasised, 6);
+  });
+
+  it('makes every other planet smaller, never larger', () => {
+    const scene = systemScene();
+    scene.setBoostSizes(true);
+    const emphasised = Object.fromEntries(planetIds.map((id) => [id, scaleOf(scene, id)]));
+    scene.setBoostSizes(false);
+    for (const id of planetIds) {
+      expect(scaleOf(scene, id), id).toBeLessThanOrEqual(emphasised[id] + 1e-9);
+    }
+  });
+
+  it('shrinks the small worlds a great deal, which is the honest picture', () => {
+    const scene = systemScene();
+    scene.setBoostSizes(true);
+    const emphasised = scaleOf(scene, 'mercury');
+    scene.setBoostSizes(false);
+    expect(scaleOf(scene, 'mercury')).toBeLessThan(emphasised / 5);
+  });
+
+  it('still holds the true radius ratio between the planets', () => {
+    const scene = systemScene();
+    scene.setBoostSizes(false);
+    const jupiter = PLANETS.find((planet) => planet.id === 'jupiter');
+    const mercury = PLANETS.find((planet) => planet.id === 'mercury');
+    expect(scaleOf(scene, 'jupiter') / scaleOf(scene, 'mercury')).toBeCloseTo(
+      jupiter.radiusKm / mercury.radiusKm,
+      3
+    );
+  });
+
+  it('leaves the sun where it was, it is not part of the comparison', () => {
+    const scene = systemScene();
+    scene.setBoostSizes(true);
+    const emphasised = scaleOf(scene, 'sun');
+    scene.setBoostSizes(false);
+    expect(scaleOf(scene, 'sun')).toBeCloseTo(emphasised, 9);
   });
 });

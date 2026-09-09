@@ -150,6 +150,16 @@ export function createFlightScene({
   let labelList = [];
 
   const bodyById = new Map(bodies.map((body) => [body.id, body]));
+
+  /**
+   * The two system view scales are anchored on the largest planet, so the
+   * toggle changes how far apart the sizes are and not how large the whole
+   * system is drawn. Anchored on Earth instead, switching to true sizes made
+   * Jupiter five times larger, which reads as the opposite of true.
+   */
+  const planets = bodies.filter((body) => body.absoluteMagnitude === null);
+  const largestCubeRadius = Math.max(...planets.map((body) => body.cubeRadius));
+  const largestRadiusRatio = Math.max(...planets.map((body) => body.radiusRatio));
   const focusedBody = () =>
     focusBodyId && orbitsAroundTarget(mode) ? (bodyById.get(focusBodyId) ?? null) : null;
   const activeOrbit = () => (focusedBody() ? focusOrbit : mode === 'system' ? systemOrbit : orbit);
@@ -228,7 +238,10 @@ export function createFlightScene({
     // a view a hundred and fifty units wide it stops being a body and becomes a
     // wall the camera stands inside. The toggle is about the planets.
     const isStar = body.absoluteMagnitude !== null;
-    const systemRatio = boostSizes || isStar ? body.cubeRadius : body.radiusRatio;
+    const systemRatio =
+      boostSizes || isStar
+        ? body.cubeRadius
+        : (largestCubeRadius * body.radiusRatio) / largestRadiusRatio;
     const systemScale = SYSTEM_BODY_SCALE * systemRatio;
     body.mesh.scale.setScalar(inSystem ? systemScale : Math.max(shown, SMALLEST_BODY_SCALE));
 
