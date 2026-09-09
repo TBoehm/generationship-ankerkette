@@ -1,0 +1,382 @@
+import * as THREE from 'three';
+import { MISSION } from '../../../domain/constants/missionProfile.js';
+import { DESTINATIONS } from '../../../domain/constants/starSystem.js';
+import { flightStateAt } from '../../../domain/usecases/flightState.js';
+import { displayRadius, warpFactor, warpParameters } from '../../../domain/usecases/spatialWarp.js';
+import {
+  createOrbitState,
+  orbitAfterDrag,
+  orbitAfterZoom,
+} from '../../../domain/usecases/cameraOrbit.js';
+import { apparentMagnitude } from '../../../domain/usecases/photometry.js';
+import { pathPositionAt } from '../../../domain/usecases/flightGeometry.js';
+import { createDisposalRegistry } from '../disposal.js';
+import { createResources } from './resources.js';
+import { toScene } from './coordinates.js';
+import { PROXIMA_POSITION, SUN_POSITION } from './layout.js';
+import { lightColor } from './palette.js';
+import { createBodies, moveBodies } from './bodies.js';
+import { createFields, warpFields } from './fields.js';
+import { createTraces, warpTraces } from './traces.js';
+import {
+  PLUME_OPACITY,
+  PLUME_PULSE_RATE,
+  SAIL_OPACITY,
+  SAIL_PULSE_RATE,
+  createShipProxy,
+  spinRings,
+} from './shipProxy.js';
+import {
+  DEFAULT_CAMERA_MODE,
+  INITIAL_ORBIT,
+  INITIAL_SYSTEM_DISTANCE,
+  SYSTEM_SHIP_SCALE,
+  createFlightCamera,
+  isCameraMode,
+  limitsFor,
+  orbitsAroundTarget,
+  placeCamera,
+} from './camera.js';
+import { PICK_ANGLE, createPicker } from './picking.js';
+
+/**
+ * The journey from the departure orbit to proxima b, as one scene the stage
+ * owns. It creates no renderer, runs no loop and listens to nothing: it is
+ * handed a frame, a distance and a pointer gesture, and it answers with an
+ * object tree and a list of label positions.
+ *
+ * Everything follows from `setDistance`. The distance gives the mission time,
+ * the mission time gives every planet its phase, the distance gives the
+ * reference length of the compression, and the distance from the ship to each
+ * star gives its brightness. There is no second source of truth and no clock.
+ */
+const AMBIENT_INTENSITY = 0.72;
+const SUN_LIGHT = { intensity: 3, minimum: 0.06, maximum: 2.2, minimumRange: 0.4 };
+const PROXIMA_LIGHT = { intensity: 0.05, maximum: 2, minimumRange: 0.02 };
+const CAMERA_LIGHT_INTENSITY = 0.5;
+
+/** Exaggeration of the body sizes in system view, where scale is pinned. */
+const SYSTEM_BODY_SCALE = 0.9;
+const SMALLEST_BODY_SCALE = 1e-5;
+const SMALLEST_WARPED_LENGTH = 1e-4;
+
+/** Star glow, sized and dimmed from the apparent magnitude. */
+const STAR_GLOW = { scale: 24, exponent: -0.12, offset: 5, min: 2, max: 30 };
+const STAR_GLOW_OPACITY = { offset: 1, span: 12, min: 0.1, max: 1 };
+/** Planet glow, sized from the angular radius and dimmed with distance. */
+const PLANET_GLOW = { scale: 5000, min: 1.8, max: 9, range: 5000 };
+const PLANET_GLOW_OPACITY = { offset: 1.4, span: 70, min: 0.1, max: 0.85 };
+
+/** How far outside the frame a label may sit before it is dropped. */
+const LABEL_MARGIN = 1.05;
+
+const HALF_DISTANCE = MISSION.totalDistance / 2;
+const BRAKING_START = MISSION.totalDistance - MISSION.brakingDistance;
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+export function createFlightScene({
+  registry = createDisposalRegistry(),
+  random = Math.random,
+} = {}) {
+  const resources = createResources(registry);
+  // No background colour on purpose. A scene background forces a clear in
+  // r128 even with autoClear off, which would wipe the pass drawn before it
+  // and take the crossfade with it. The backdrop is the clear colour.
+  const root = new THREE.Scene();
+  root.name = 'flight';
+  const camera = createFlightCamera();
+
+  const ambientLight = new THREE.AmbientLight(lightColor('ambient'), AMBIENT_INTENSITY);
+  const sunLight = new THREE.PointLight(lightColor('sun'), SUN_LIGHT.intensity, 0);
+  const proximaLight = new THREE.PointLight(lightColor('proxima'), 0, 0);
+  const cameraLight = new THREE.DirectionalLight(lightColor('camera'), CAMERA_LIGHT_INTENSITY);
+  root.add(ambientLight, sunLight, proximaLight, cameraLight);
+
+  const { group: fieldGroup, fields } = createFields(resources, random);
+  const { group: traceGroup, traces } = createTraces(resources);
+  const { group: bodyGroup, bodies } = createBodies(resources);
+  const proxy = createShipProxy(resources);
+  root.add(fieldGroup, traceGroup, bodyGroup, proxy.group);
+
+  const heading = toScene(DESTINATIONS.proxima.direction).normalize();
+  proxy.group.lookAt(heading);
+
+  const pickTargets = new Map();
+  for (const body of bodies) {
+    pickTargets.set(body.mesh, body);
+    pickTargets.set(body.glow, body);
+  }
+  const pickable = [...pickTargets.keys()];
+  const pick = createPicker();
+
+  const sunPosition = toScene(SUN_POSITION);
+  const proximaPosition = toScene(PROXIMA_POSITION);
+  const shipPosition = new THREE.Vector3();
+  const warpCentre = new THREE.Vector3();
+  const offset = new THREE.Vector3();
+  const projected = new THREE.Vector3();
+
+  const viewport = { width: 0, height: 0 };
+  let mode = DEFAULT_CAMERA_MODE;
+  let orbit = createOrbitState(INITIAL_ORBIT, limitsFor('chase'));
+  let systemOrbit = createOrbitState(
+    { ...INITIAL_ORBIT, distance: INITIAL_SYSTEM_DISTANCE },
+    limitsFor('system')
+  );
+  let distance = MISSION.startDistance;
+  let boostSizes = true;
+  let showLabels = true;
+  let elapsed = 0;
+  let labelList = [];
+
+  const activeOrbit = () => (mode === 'system' ? systemOrbit : orbit);
+
+  function aim() {
+    proxy.group.visible = orbitsAroundTarget(mode);
+    placeCamera(camera, { mode, orbit: activeOrbit(), heading });
+    if (camera.position.lengthSq() > 0) {
+      cameraLight.position.copy(camera.position).normalize();
+    } else {
+      camera.getWorldDirection(cameraLight.position).negate();
+    }
+  }
+
+  /** Warp one true position into the compressed scene, in place. */
+  function warpPosition(target, position, parameters) {
+    offset.copy(position).sub(warpCentre);
+    return target.copy(offset).multiplyScalar(warpFactor(offset.length(), parameters));
+  }
+
+  function updateBody(body, parameters, inSystem) {
+    offset.copy(body.position).sub(warpCentre);
+    const trueLength = offset.length();
+    const factor = warpFactor(trueLength, parameters);
+    body.mesh.position.copy(offset).multiplyScalar(factor);
+    body.glow.position.copy(body.mesh.position);
+
+    const fromShip = body.position.distanceTo(shipPosition);
+    const shown = displayRadius(
+      body.radiusAu,
+      fromShip,
+      Math.max(trueLength * factor, SMALLEST_WARPED_LENGTH),
+      boostSizes
+    );
+    body.mesh.scale.setScalar(
+      inSystem ? SYSTEM_BODY_SCALE * body.cubeRadius : Math.max(shown, SMALLEST_BODY_SCALE)
+    );
+
+    if (body.absoluteMagnitude !== null) {
+      const magnitude = apparentMagnitude(body.absoluteMagnitude, fromShip);
+      body.glow.visible = true;
+      body.glow.material.size = clamp(
+        STAR_GLOW.scale * Math.pow(10, STAR_GLOW.exponent * (magnitude + STAR_GLOW.offset)),
+        STAR_GLOW.min,
+        STAR_GLOW.max
+      );
+      resources.setBase(
+        body.glow.material,
+        clamp(
+          1 - (magnitude - STAR_GLOW_OPACITY.offset) / STAR_GLOW_OPACITY.span,
+          STAR_GLOW_OPACITY.min,
+          STAR_GLOW_OPACITY.max
+        )
+      );
+      return;
+    }
+    body.glow.visible = fromShip < PLANET_GLOW.range;
+    body.glow.material.size = clamp(
+      (body.radiusAu / Math.max(fromShip, 1e-9)) * PLANET_GLOW.scale,
+      PLANET_GLOW.min,
+      PLANET_GLOW.max
+    );
+    resources.setBase(
+      body.glow.material,
+      clamp(
+        PLANET_GLOW_OPACITY.offset - fromShip / PLANET_GLOW_OPACITY.span,
+        PLANET_GLOW_OPACITY.min,
+        PLANET_GLOW_OPACITY.max
+      )
+    );
+  }
+
+  function rebuild() {
+    const parameters = warpParameters(distance, mode);
+    const state = flightStateAt(distance);
+    // The orbits are phased from the cast off, the flight clock from the
+    // first pulse of the drive. They differ by the 1.5 years of the tow.
+    moveBodies(bodies, state.missionTime - MISSION.towDuration);
+
+    toScene(pathPositionAt(distance), shipPosition);
+    const inSystem = mode === 'system';
+    if (inSystem) {
+      warpCentre.copy(distance <= HALF_DISTANCE ? sunPosition : proximaPosition);
+    } else {
+      warpCentre.copy(shipPosition);
+    }
+
+    warpPosition(proxy.group.position, shipPosition, parameters);
+    proxy.group.scale.setScalar(inSystem ? SYSTEM_SHIP_SCALE : 1);
+
+    warpPosition(sunLight.position, sunPosition, parameters);
+    sunLight.intensity = clamp(
+      SUN_LIGHT.intensity / Math.max(shipPosition.length(), SUN_LIGHT.minimumRange),
+      SUN_LIGHT.minimum,
+      SUN_LIGHT.maximum
+    );
+    warpPosition(proximaLight.position, proximaPosition, parameters);
+    proximaLight.intensity = clamp(
+      PROXIMA_LIGHT.intensity /
+        Math.max(shipPosition.distanceTo(proximaPosition), PROXIMA_LIGHT.minimumRange),
+      0,
+      PROXIMA_LIGHT.maximum
+    );
+
+    for (const body of bodies) updateBody(body, parameters, inSystem);
+    warpFields(fields, warpCentre, parameters);
+    warpTraces(traces, warpCentre, parameters);
+
+    proxy.plume.visible = distance < MISSION.accelerationDistance;
+    proxy.sail.visible = distance > BRAKING_START;
+  }
+
+  /**
+   * Where each name belongs on the screen, in CSS pixels. The scene projects
+   * and the view draws, so no element is created, measured or moved here.
+   */
+  function projectLabels() {
+    if (!showLabels || resources.opacity() <= 0) return [];
+    const list = [];
+    for (const body of bodies) {
+      projected.copy(body.mesh.position).project(camera);
+      const inFrame =
+        projected.z < 1 &&
+        Math.abs(projected.x) < LABEL_MARGIN &&
+        Math.abs(projected.y) < LABEL_MARGIN;
+      if (!inFrame) continue;
+      list.push({
+        id: body.id,
+        nameKey: body.nameKey,
+        x: (projected.x * 0.5 + 0.5) * viewport.width,
+        y: (-projected.y * 0.5 + 0.5) * viewport.height,
+      });
+    }
+    return list;
+  }
+
+  aim();
+  rebuild();
+
+  return {
+    root,
+    camera,
+
+    setOpacity(value) {
+      resources.setOpacity(value);
+    },
+
+    update(deltaMs) {
+      const seconds = Math.max(0, deltaMs) / 1000;
+      elapsed += seconds;
+      spinRings(proxy, seconds);
+      if (proxy.plume.visible) {
+        resources.setBase(
+          proxy.plumeMaterial,
+          PLUME_OPACITY.base + PLUME_OPACITY.swing * Math.sin(elapsed * PLUME_PULSE_RATE)
+        );
+      }
+      if (proxy.sail.visible) {
+        resources.setBase(
+          proxy.sailMaterial,
+          SAIL_OPACITY.base + SAIL_OPACITY.swing * Math.sin(elapsed * SAIL_PULSE_RATE)
+        );
+      }
+      labelList = projectLabels();
+      return labelList;
+    },
+
+    /** The label positions of the last frame, for the view to draw. */
+    labels() {
+      return labelList;
+    },
+
+    handleDrag(dx, dy) {
+      if (mode === 'system') {
+        systemOrbit = orbitAfterDrag(systemOrbit, dx, dy, limitsFor('system'));
+        orbit = { ...orbit, theta: systemOrbit.theta, phi: systemOrbit.phi };
+      } else {
+        orbit = orbitAfterDrag(orbit, dx, dy, limitsFor(mode));
+        systemOrbit = { ...systemOrbit, theta: orbit.theta, phi: orbit.phi };
+      }
+      aim();
+    },
+
+    handleZoom(factor) {
+      if (mode === 'system') {
+        systemOrbit = orbitAfterZoom(systemOrbit, factor, limitsFor('system'));
+      } else {
+        orbit = orbitAfterZoom(orbit, factor, limitsFor(mode));
+      }
+      aim();
+    },
+
+    handleTap(x, y, onSelect) {
+      root.updateMatrixWorld(true);
+      const hit = pick({
+        x,
+        y,
+        viewport,
+        camera,
+        root,
+        targets: pickable,
+        threshold: PICK_ANGLE * activeOrbit().distance,
+      });
+      const body = hit && pickTargets.get(hit);
+      if (body) onSelect({ kind: 'body', id: body.id, nameKey: body.nameKey });
+    },
+
+    setDistance(au) {
+      if (!Number.isFinite(au)) return;
+      distance = clamp(au, 0, MISSION.totalDistance);
+      rebuild();
+    },
+
+    setCameraMode(next) {
+      if (!isCameraMode(next) || next === mode) return;
+      mode = next;
+      aim();
+      rebuild();
+    },
+
+    setBoostSizes(on) {
+      boostSizes = Boolean(on);
+      rebuild();
+    },
+
+    setShowLabels(on) {
+      showLabels = Boolean(on);
+      if (!showLabels) labelList = [];
+    },
+
+    resize(width, height) {
+      if (!width || !height) return;
+      viewport.width = width;
+      viewport.height = height;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    },
+
+    dispose() {
+      registry.disposeAll();
+      root.clear();
+      pickTargets.clear();
+      pickable.length = 0;
+      bodies.length = 0;
+      fields.length = 0;
+      traces.length = 0;
+      labelList = [];
+    },
+  };
+}

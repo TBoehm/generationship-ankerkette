@@ -11,7 +11,7 @@
  * cannot escape the fade.
  */
 export function createResources(registry) {
-  const entries = [];
+  const entries = new Map();
   let sceneOpacity = 1;
 
   function applyTo(entry) {
@@ -38,35 +38,34 @@ export function createResources(registry) {
     material(material, base = material.opacity ?? 1) {
       registry.add(() => material.dispose());
       const entry = { material, base };
-      entries.push(entry);
+      entries.set(material, entry);
       applyTo(entry);
       return material;
     },
 
     /** Change what a material shows at full scene opacity. */
     setBase(material, base) {
-      const entry = entries.find((candidate) => candidate.material === material);
+      const entry = entries.get(material);
       if (!entry) return;
       entry.base = base;
       applyTo(entry);
     },
 
+    baseOf(material) {
+      return entries.get(material)?.base ?? null;
+    },
+
     setOpacity(value) {
       sceneOpacity = Math.min(1, Math.max(0, value));
-      for (const entry of entries) applyTo(entry);
+      for (const entry of entries.values()) applyTo(entry);
     },
 
     opacity() {
       return sceneOpacity;
     },
 
-    /** Fade a value that is computed per frame, without a lookup. */
-    faded(value) {
-      return value * sceneOpacity;
-    },
-
     count() {
-      return entries.length;
+      return entries.size;
     },
   };
 }

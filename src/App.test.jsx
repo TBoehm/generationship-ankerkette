@@ -6,8 +6,24 @@ import App from './App.jsx';
 import './infrastructure/i18n/index.js';
 import de from './locales/de.json';
 
+const stageCalls = [];
+
 vi.mock('./presentation/hooks/useScene.js', () => ({
-  useScene: () => ({ current: null }),
+  useScene: ({ onReady }) => {
+    // Stand in for a scene that finishes loading one tick after mount, which
+    // is when every choice the user already made has to be pushed to it.
+    const stage = {
+      setFocus: (value) => stageCalls.push(['focus', value]),
+      setSelection: (value) => stageCalls.push(['selection', value]),
+      setDistance: (value) => stageCalls.push(['distance', value]),
+      setCameraMode: (value) => stageCalls.push(['cameraMode', value]),
+      setBoostSizes: (value) => stageCalls.push(['boostSizes', value]),
+      setShowLabels: (value) => stageCalls.push(['showLabels', value]),
+      onSelect: () => {},
+    };
+    if (onReady && !stageCalls.length) queueMicrotask(() => onReady(stage));
+    return { current: null };
+  },
 }));
 
 function renderAt(path) {
@@ -22,6 +38,13 @@ function renderAt(path) {
 }
 
 describe('App', () => {
+  it('tells a late arriving scene which focus the deep link asked for', async () => {
+    stageCalls.length = 0;
+    renderAt('/ship');
+    await waitFor(() => expect(stageCalls.length).toBeGreaterThan(0));
+    expect(stageCalls).toContainEqual(['focus', 'ship']);
+  });
+
   it('opens straight into the combined view, with no page in front of it', () => {
     renderAt('/');
     expect(screen.getByRole('heading', { name: /Ankerkette/ })).toBeInTheDocument();

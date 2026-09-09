@@ -29,6 +29,7 @@ export default function PresentationPage() {
   const { pathname } = useLocation();
 
   const stageRef = useRef(null);
+  const settingsRef = useRef(null);
   const [focus, setFocus] = useState(() => focusForPath(pathname));
   const [selection, setSelection] = useState(EMPTY_SELECTION);
   const [distance, setDistance] = useState(MISSION.startDistance);
@@ -37,10 +38,26 @@ export default function PresentationPage() {
   const [boostSizes, setBoostSizes] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
 
+  /**
+   * Everything the user chose before the scene finished loading has to be
+   * pushed once it arrives. The effects below run against a stage that does
+   * not exist yet on the first render, and a deep link to /ship sets the focus
+   * in exactly that window, which is how the ship route ended up showing the
+   * journey.
+   */
   const onReady = useCallback((stage) => {
     stageRef.current = stage;
     stage.onSelect((picked) => setSelection((current) => select(current, picked)));
+    const settings = settingsRef.current;
+    stage.setFocus(settings.focus);
+    stage.setSelection(settings.selection);
+    stage.setDistance(settings.distance);
+    stage.setCameraMode(settings.cameraMode);
+    stage.setBoostSizes(settings.boostSizes);
+    stage.setShowLabels(settings.showLabels);
   }, []);
+
+  settingsRef.current = { focus, selection, distance, cameraMode, boostSizes, showLabels };
 
   const withStage = (apply) => {
     const stage = stageRef.current;

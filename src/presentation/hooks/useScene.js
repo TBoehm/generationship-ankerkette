@@ -11,7 +11,7 @@ import { useEffect, useRef } from 'react';
  * second WebGL context; browsers cap contexts and drop the oldest without an
  * error, which surfaces much later as a view that went black for no reason.
  */
-const loadStageModule = () => import('../../infrastructure/scene/stage.js');
+const loadStageModule = () => import('../../infrastructure/scene/index.js');
 
 export function useScene({ hostRef, loadStage = loadStageModule, onReady, reducedMotion }) {
   const stageRef = useRef(null);
@@ -23,11 +23,15 @@ export function useScene({ hostRef, loadStage = loadStageModule, onReady, reduce
     loadStage()
       .then((module) => {
         if (cancelled || !hostRef.current) return;
-        stage = module.createStage({
+        stage = module.createPresentationStage({
           host: hostRef.current,
           reducedMotion,
         });
         stageRef.current = stage;
+        // The host is already laid out by the time the scene module arrives,
+        // so its ResizeObserver has fired its one initial observation and will
+        // not fire again. Without this the renderer keeps its default 300x150.
+        stage.resize(hostRef.current.clientWidth, hostRef.current.clientHeight);
         stage.start();
         if (onReady) onReady(stage);
       })

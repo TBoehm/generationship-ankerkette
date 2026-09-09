@@ -32,15 +32,17 @@ function Harness({ loadStage, onReady }) {
 describe('useScene', () => {
   it('builds the stage once and starts it', async () => {
     const stage = makeStage();
-    const createStage = vi.fn(() => stage);
-    render(<Harness loadStage={async () => ({ createStage })} />);
-    await waitFor(() => expect(createStage).toHaveBeenCalledTimes(1));
+    const createPresentationStage = vi.fn(() => stage);
+    render(<Harness loadStage={async () => ({ createPresentationStage })} />);
+    await waitFor(() => expect(createPresentationStage).toHaveBeenCalledTimes(1));
     expect(stage.start).toHaveBeenCalledTimes(1);
   });
 
   it('disposes the stage when the component goes away', async () => {
     const stage = makeStage();
-    const { unmount } = render(<Harness loadStage={async () => ({ createStage: () => stage })} />);
+    const { unmount } = render(
+      <Harness loadStage={async () => ({ createPresentationStage: () => stage })} />
+    );
     await waitFor(() => expect(stage.start).toHaveBeenCalled());
     unmount();
     expect(stage.dispose).toHaveBeenCalledTimes(1);
@@ -52,27 +54,27 @@ describe('useScene', () => {
     // context at all, because a constructed one is a context the browser counts
     // against its cap even if it is disposed a tick later.
     const stage = makeStage();
-    const createStage = vi.fn(() => stage);
+    const createPresentationStage = vi.fn(() => stage);
     const gate = deferred();
     const { unmount } = render(
       <Harness
         loadStage={async () => {
           await gate.promise;
-          return { createStage };
+          return { createPresentationStage };
         }}
       />
     );
     unmount();
     gate.resolve();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(createStage).not.toHaveBeenCalled();
+    expect(createPresentationStage).not.toHaveBeenCalled();
     expect(stage.start).not.toHaveBeenCalled();
   });
 
   it('never leaves two stages alive across a remount', async () => {
     const stages = [];
     const loadStage = async () => ({
-      createStage: () => {
+      createPresentationStage: () => {
         const stage = makeStage();
         stages.push(stage);
         return stage;
@@ -87,10 +89,27 @@ describe('useScene', () => {
     expect(alive).toHaveLength(1);
   });
 
+  it('sizes the stage as soon as it arrives, not only on a later resize', async () => {
+    // The observer in the canvas host fires once when it starts observing,
+    // which is before the dynamic import resolves. If the stage is not sized
+    // here it keeps the renderer default and the view draws into 300 by 150.
+    const stage = makeStage();
+    render(<Harness loadStage={async () => ({ createPresentationStage: () => stage })} />);
+    await waitFor(() => expect(stage.resize).toHaveBeenCalled());
+    expect(stage.resize.mock.invocationCallOrder[0]).toBeLessThan(
+      stage.start.mock.invocationCallOrder[0]
+    );
+  });
+
   it('reports the stage upward once it is running', async () => {
     const stage = makeStage();
     const onReady = vi.fn();
-    render(<Harness loadStage={async () => ({ createStage: () => stage })} onReady={onReady} />);
+    render(
+      <Harness
+        loadStage={async () => ({ createPresentationStage: () => stage })}
+        onReady={onReady}
+      />
+    );
     await waitFor(() => expect(onReady).toHaveBeenCalledWith(stage));
   });
 

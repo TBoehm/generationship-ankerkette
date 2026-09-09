@@ -49,13 +49,13 @@
   backdrop-filter: blur(8px);
   padding: var(--space-3) var(--space-4);
   padding-bottom: calc(var(--space-3) + var(--safe-bottom));
-  max-height: 62vh;
+  max-height: 46vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 @media (min-width: 1024px) {
   .presentation__dock {
-    max-height: 48vh;
+    max-height: 40vh;
   }
 }

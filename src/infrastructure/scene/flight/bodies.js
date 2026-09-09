@@ -58,19 +58,14 @@ function pointGeometry(resources) {
  */
 function createBody({ definition, resources, geometries, orbit = null }) {
   const emissive = emissiveColor(definition.colorKey);
-  const mesh = new THREE.Mesh(
-    geometries.sphere,
-    resources.material(
-      new THREE.MeshStandardMaterial({
-        color: bodyColor(definition.colorKey),
-        emissive: emissive ?? 0x000000,
-        emissiveIntensity: emissive === null ? 0 : 1,
-        roughness: SURFACE_ROUGHNESS,
-        metalness: SURFACE_METALNESS,
-      }),
-      1
-    )
-  );
+  // A material that is left alone emits nothing, which is what a planet does.
+  const surface = new THREE.MeshStandardMaterial({
+    color: bodyColor(definition.colorKey),
+    roughness: SURFACE_ROUGHNESS,
+    metalness: SURFACE_METALNESS,
+  });
+  if (emissive !== null) surface.emissive.setHex(emissive);
+  const mesh = new THREE.Mesh(geometries.sphere, resources.material(surface, 1));
   const glow = new THREE.Points(
     geometries.point,
     resources.material(
