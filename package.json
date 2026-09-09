@@ -1,7 +1,7 @@
 {
   "name": "generationship-ankerkette",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -17,6 +17,7 @@
     "test": "vitest --project unit",
     "test:ci": "vitest run --project unit",
     "i18n:check": "node scripts/i18n-check.mjs",
+    "lang:check": "node scripts/lang-check.mjs",
     "version:check": "node scripts/version-check.mjs",
     "pages:check": "node scripts/pages-check.mjs",
     "qa": "node scripts/ci-gates.mjs"

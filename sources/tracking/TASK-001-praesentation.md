@@ -14,7 +14,7 @@ Präsentation, die auf GitHub Pages läuft.
 - Die Szenen aus `legacy/generationenschiff-grundriss.html` und
   `legacy/flug-3d-proxima.html` als framework-freie Module nach
   `src/infrastructure/scene/`, ihre Mathematik nach `src/domain/`
-- Dünne React-Wrapper in `src/presentation/pages/` für `/schiff` und `/flug`
+- Dünne React-Wrapper in `src/presentation/pages/` für `/ship` und `/flight`
 - Ein gemeinsamer Übergang zwischen beiden Ansichten
 
 ## Nicht im Scope
@@ -24,8 +24,8 @@ Präsentation, die auf GitHub Pages läuft.
 - Neue Auslegungsgrößen. Alle Zahlen kommen aus `CLAUDE.md`
 
 ## Akzeptanzkriterien
-- [ ] `/schiff` zeigt den Generalplan mit Decks und Raumaufteilung
-- [ ] `/flug` zeigt die Reise vom Sonnensystem bis Proxima b
+- [ ] `/ship` zeigt den Generalplan mit Decks und Raumaufteilung
+- [ ] `/flight` zeigt die Reise vom Sonnensystem bis Proxima b
 - [ ] Beide Ansichten teilen sich Kopfzeile, Navigation und Tokens
 - [ ] Kein globaler Namenskonflikt mehr, jede Szene kapselt ihren Zustand
       und hängt ihre Renderschleife an den Lifecycle ihres Wrappers

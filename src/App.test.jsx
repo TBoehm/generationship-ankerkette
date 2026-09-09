@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App.jsx';
 import './infrastructure/i18n/index.js';
+import de from './locales/de.json';
 
 function renderAt(path) {
   return render(
@@ -29,8 +30,8 @@ describe('App', () => {
 
   it('navigates to the ship view', async () => {
     renderAt('/');
-    await userEvent.click(screen.getByRole('link', { name: 'Schiff' }));
-    expect(screen.getByText('Noch nicht umgesetzt')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('link', { name: de.nav.ship }));
+    expect(screen.getByText(de.pending.title)).toBeInTheDocument();
   });
 
   it('redirects an unknown route to the overview', () => {

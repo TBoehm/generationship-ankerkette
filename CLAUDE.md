@@ -277,5 +277,5 @@ der Portierung, sie werden nicht mehr weiterentwickelt.
 6. Die Sektorlänge von Deck 5 steht in der Tabelle mit 165,0 m, gerechnet sind es
    164,9 m. Der Überschuss der Fehlrechnung mit fünfmal r=125 beträgt 8,7 %, nicht
    8 %. Beides ist Rundung in dieser Datei, der Code rechnet die exakten Werte.
-7. TASK-001 portiert die beiden Szenen. Bis dahin zeigen `/schiff` und `/flug` nur
+7. TASK-001 portiert die beiden Szenen. Bis dahin zeigen `/ship` und `/flight` nur
    einen Platzhalter, die lauffähigen Vorlagen liegen unter `legacy/`.

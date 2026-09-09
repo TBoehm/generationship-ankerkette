@@ -1,57 +1,67 @@
 # Ankerkette
 
-Interaktive Visualisierungen eines physikalisch durchgerechneten Generationenschiffs
-nach Proxima Centauri. Statisch ausgelieferte React/Vite-SPA auf GitHub Pages.
+Interactive visualisations of a physically worked-through generation ship bound for
+Proxima Centauri. A statically served React/Vite single page app on GitHub Pages.
 
-## Loslegen
+## Getting started
 
 ```bash
 npm ci
 npm run dev
 ```
 
-Der Port wird aus dem Worktree-Pfad abgeleitet, nicht fest vergeben, damit zwei
-Sessions parallel laufen können. `ANKERKETTE_PORT` überschreibt ihn.
+The port is derived from the worktree path rather than fixed, so two sessions can
+run side by side. `ANKERKETTE_PORT` overrides it.
 
-## Die drei Dokumente
+## The three documents
 
-| Datei | Inhalt |
+| File | Contents |
 |---|---|
-| `CLAUDE.md` | Auslegungsstand des Schiffs. Alle Zahlen sind hergeleitet. Wer eine Größe bewegt, rechnet die abhängigen Werte nach und pflegt die Datei mit |
-| `webapp-entwicklungsablauf.md` | Entwicklungsablauf, Rollen der Skills, Quality Gates |
-| `sources/README.md` | die zwei Wissensschichten, Ticket und Spec |
+| `CLAUDE.md` | The ship's design record, in German. Every figure is derived, none guessed. Move one and you recalculate the dependent values and update the file |
+| `webapp-entwicklungsablauf.md` | Development process, the role of each skill, the quality gates |
+| `sources/README.md` | The two knowledge layers, ticket and spec |
 
-## Ablauf
+## Process
 
-Ticket über `/plan-task` nach `sources/tracking/`, Umsetzung über `/implement` in
-einem eigenen Worktree, Gates über `/gate-runner`, Pull Request gegen `develop`.
-Nur ein Merge nach `main` veröffentlicht, und dieser Merge gehört dem Menschen.
+Ticket via `/plan-task` into `sources/tracking/`, implementation via `/implement` in
+its own worktree, gates via `/gate-runner`, pull request against `develop`. Only a
+merge into `main` publishes, and that merge belongs to a human.
 
 ## Gates
 
 ```bash
-npm run qa                 # alle Gates, jeder läuft auch nach einem Fehlschlag weiter
-npm run qa -- --job checks # Format, Lint, i18n, Version, ohne Build
+npm run qa                 # every gate, each one runs on even after an earlier failure
+npm run qa -- --job checks # format, lint, i18n, language, version, without the build
 ```
 
-Die Liste steht als Code in `scripts/ci-gates.mjs`. Die Actions-Workflows rufen
-denselben Runner, und `scripts/ci-gates.test.mjs` wird rot, sobald ein Pipeline-Job
-daran vorbeiläuft.
+The list lives as code in `scripts/ci-gates.mjs`. Both Actions workflows call that
+same runner, and `scripts/ci-gates.test.mjs` turns red the moment a pipeline job
+walks past it.
 
-Getestet wird mit Vitest in jsdom, also nur mit dem, was unbeaufsichtigt auf der
-GitHub CI läuft. Es gibt kein Browser-Level und kein End-to-End-Level. Was eine
-WebGL-Szene rechnet, liegt deshalb in `src/domain/` und wird dort geprüft.
+Tests run under Vitest in jsdom, which is the part that runs unattended on GitHub
+CI. There is no browser level and no end-to-end level. What a WebGL scene computes
+therefore lives in `src/domain/` and is verified there.
 
-## Veröffentlichung
+## Language
 
-Push auf `main` baut, prüft und veröffentlicht auf GitHub Pages, danach Tag und
-Release. Der `base`-Pfad ist `/generationship-ankerkette/`. `404.html` geht als
-Kopie der `index.html` mit, sonst wäre jeder Reload auf einer Unterroute ein 404.
-`pages:check` prüft beides am gebauten Ergebnis.
+Code, identifiers, comments, test names, skill files and this README are English
+everywhere. German reaches the code only through `src/locales`, never as a literal
+and never in a comment. `npm run lang:check` enforces it; a deliberate exception
+carries `lang-check-ignore` on its line.
+
+Tickets, specs, commit messages and pull request text are German, and so is
+`CLAUDE.md`: it is the design record, and its terminology is German throughout.
+
+## Publishing
+
+A push to `main` builds, checks, publishes to GitHub Pages, then tags and releases.
+The base path is `/generationship-ankerkette/`. `404.html` ships as a copy of
+`index.html`, otherwise every reload on a sub-route would 404. `pages:check`
+verifies both against the built output.
 
 ## Legacy
 
-`legacy/` enthält die drei ursprünglichen Einzeldokumente ohne Build-Schritt. Sie
-sind die Vorlage der Portierung in TASK-001 und werden nicht weiterentwickelt.
-`legacy/flugbahn-alpha-centauri.html` zielt noch auf α Cen AB und ist damit auf ein
-anderes Ziel gerechnet.
+`legacy/` holds the three original single-file documents that needed no build step.
+They are the source for the port in TASK-001 and are no longer developed.
+`legacy/flugbahn-alpha-centauri.html` still aims at α Cen AB and is therefore
+computed for a different target.

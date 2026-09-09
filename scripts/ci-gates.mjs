@@ -17,6 +17,7 @@ export const GATES = [
   { id: 'format:check', job: 'checks', command: 'npm', args: ['run', 'format:check'] },
   { id: 'lint', job: 'checks', command: 'npm', args: ['run', 'lint'] },
   { id: 'i18n:check', job: 'checks', command: 'npm', args: ['run', 'i18n:check'] },
+  { id: 'lang:check', job: 'checks', command: 'npm', args: ['run', 'lang:check'] },
   { id: 'version:check', job: 'checks', command: 'npm', args: ['run', 'version:check'] },
   { id: 'test:ci', job: 'test', command: 'npm', args: ['run', 'test:ci'] },
   { id: 'build', job: 'build', command: 'npm', args: ['run', 'build'] },

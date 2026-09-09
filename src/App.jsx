@@ -1,4 +1,4 @@
-// Design reference: CLAUDE.md, Farbwelt und Mobil zuerst
+// Design reference: CLAUDE.md, colour palette and mobile-first rules
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AppShell from './presentation/components/AppShell.jsx';
 import OverviewPage from './presentation/pages/OverviewPage.jsx';

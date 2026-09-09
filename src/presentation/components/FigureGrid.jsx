@@ -1,4 +1,4 @@
-// Design reference: CLAUDE.md, Farbwelt und deutsche Zahlformatierung
+// Design reference: CLAUDE.md, colour palette and German number formatting
 import { useTranslation } from 'react-i18next';
 import { formatDecimal, formatInteger } from '../../domain/utils/format.js';
 import './FigureGrid.css';

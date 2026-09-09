@@ -1,4 +1,4 @@
-// Design reference: CLAUDE.md, Farbwelt und Mobil zuerst
+// Design reference: CLAUDE.md, colour palette and mobile-first rules
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import FigureGrid from '../components/FigureGrid.jsx';

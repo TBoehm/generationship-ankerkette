@@ -1,5 +1,5 @@
 export const ROUTES = Object.freeze({
   overview: '/',
-  ship: '/schiff',
-  flight: '/flug',
+  ship: '/ship',
+  flight: '/flight',
 });

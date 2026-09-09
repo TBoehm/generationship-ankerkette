@@ -57,8 +57,12 @@ explicitly. Half met is a `major`.
   Everything resolves to a token from
   `src/presentation/styles/tokens.css`.
 - **Language.** Code, identifiers, comments, test names, skill files and
-  READMEs in English. Specs, commits, pull request text and tickets in
-  German. Two languages in one file is a `major`.
+  READMEs in English, everywhere and without exception. German reaches the
+  code only through `src/locales`, never as a literal and never in a
+  comment. `npm run lang:check` enforces this mechanically; a line that
+  needs a deliberate exception carries `lang-check-ignore`. Specs, commits,
+  pull request text and tickets stay German. Two languages in one file is a
+  `major`.
 - **Comments.** None by default. The exceptions are functional directives
   and the one design reference line at the top of each view file.
 - **Secrets.** Nothing secret in the repository and nothing in the build. A
