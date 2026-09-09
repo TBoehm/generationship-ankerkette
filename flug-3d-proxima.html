@@ -1,0 +1,545 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ankerkette, Flug nach Proxima Centauri</title>
+<style>
+  :root{--hull:#05070a;--panel:#141a20;--rule:#28313a;--bone:#e6e2d8;--dim:#98a1a9;--brass:#c9a253}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:var(--hull);color:var(--bone);font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  canvas{display:block;touch-action:none}
+  #stage{position:fixed;inset:0}
+  #hud{position:fixed;left:0;right:0;top:0;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top,0px));pointer-events:none;
+       background:linear-gradient(180deg,rgba(5,7,10,.93),rgba(5,7,10,0))}
+  #hud h1{font-size:13.5px;font-weight:600}
+  #hud h1 span{color:var(--dim);font-weight:400}
+  .stats{margin-top:7px;display:flex;flex-wrap:wrap;gap:3px 15px;
+         font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:10.5px;color:var(--dim)}
+  .stats b{color:var(--brass);font-weight:600}
+  #views{position:fixed;right:10px;top:calc(76px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:6px}
+  #views button{background:rgba(20,26,32,.9);border:1px solid var(--rule);color:var(--dim);font:inherit;font-size:10.5px;
+                padding:6px 9px;border-radius:3px;cursor:pointer;backdrop-filter:blur(6px);white-space:nowrap}
+  #views button.on{border-color:var(--brass);color:var(--brass)}
+  #dock{position:fixed;left:0;right:0;bottom:0;padding:11px 12px calc(11px + env(safe-area-inset-bottom,0px));
+        background:rgba(10,14,18,.95);border-top:1px solid var(--rule);backdrop-filter:blur(8px)}
+  .prow{display:flex;align-items:baseline;gap:9px}
+  .prow .tag{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:var(--brass);
+             border:1px solid rgba(201,162,83,.4);padding:1px 6px;border-radius:2px;flex:0 0 auto}
+  .prow .ttl{font-size:12.5px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ptext{font-size:11.5px;line-height:1.5;color:#c2c0ba;margin-top:5px;max-height:52px;overflow:hidden}
+  .srow{display:flex;align-items:center;gap:10px;margin-top:6px}
+  button.play{background:none;border:1px solid var(--rule);color:var(--dim);font:inherit;font-size:11px;
+              padding:5px 11px;border-radius:3px;cursor:pointer;flex:0 0 auto}
+  button.play.on{border-color:var(--brass);color:var(--brass)}
+  input[type=range]{flex:1;-webkit-appearance:none;appearance:none;background:none;height:24px;cursor:pointer;min-width:0}
+  input[type=range]::-webkit-slider-runnable-track{height:3px;background:linear-gradient(90deg,#d98a4a,#333d46 45%,#333d46 55%,#c4705a);border-radius:2px}
+  input[type=range]::-moz-range-track{height:3px;background:linear-gradient(90deg,#d98a4a,#333d46 45%,#333d46 55%,#c4705a);border-radius:2px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:var(--brass);border:2px solid #0a0e12;margin-top:-7px}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--brass);border:2px solid #0a0e12}
+  .chips{display:flex;gap:5px;margin-top:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .chips button{background:none;border:1px solid var(--rule);color:var(--dim);font:inherit;font-size:10px;
+                padding:4px 8px;border-radius:3px;cursor:pointer;white-space:nowrap;flex:0 0 auto}
+  .chips button:hover{border-color:var(--brass);color:var(--brass)}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+</style>
+
+<div id="stage"></div>
+
+<div id="hud">
+  <h1>Ankerkette <span>Flug nach Proxima Centauri b</span></h1>
+  <div class="stats">
+    <div>Zeit <b id="sT"></b></div>
+    <div>Tempo <b id="sV"></b></div>
+    <div>Sonne <b id="sD1"></b></div>
+    <div>Ziel <b id="sD2"></b></div>
+    <div>Proxima <b id="sM"></b></div>
+    <div>Gen. <b id="sG"></b></div>
+  </div>
+</div>
+
+<div id="views">
+  <button id="vChase" class="on">Verfolgung</button>
+  <button id="vSystem">Systemansicht</button>
+  <button id="vFront">Blick voraus</button>
+  <button id="vBack">Blick zurück</button>
+  <button id="vSize" class="on">Größen betont</button>
+  <button id="vLabels" class="on">Namen an</button>
+</div>
+
+<div id="dock">
+  <div class="prow"><span class="tag" id="pTag"></span><span class="ttl" id="pTitle"></span></div>
+  <div id="ptext"></div>
+  <div class="srow">
+    <button class="play" id="play">Abspielen</button>
+    <input type="range" id="slider" min="0" max="1" step="0.00005" value="0" aria-label="Position auf der Flugbahn">
+  </div>
+  <div class="chips" id="chips"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============================================================
+   1. FLUGPROFIL, Ziel Proxima Centauri b
+   ============================================================ */
+const AU_KM=1.495978707e8, AU_M=1.495978707e11, LY_AU=63241.077, YR_S=3.156e7;
+const D_TOT=4.2465*LY_AU;            // 268.553 AE
+const D_ACC=9487, D_BRK=15800, V_C=2.998e6;
+const A_ACC=V_C*V_C/(2*D_ACC*AU_M), A_BRK=V_C*V_C/(2*D_BRK*AU_M);
+const T_TOW=1.5, T_ACC=V_C/A_ACC/YR_S, T_BRK=V_C/A_BRK/YR_S;
+const D_CRU=D_TOT-D_ACC-D_BRK, T_CRU=D_CRU*AU_M/V_C/YR_S;
+const D_START=0.0026, D_END=0.04856, D_HALF=D_TOT/2;
+const D_VIS=D_TOT-24798;             // ab hier ist Proxima mit bloßem Auge sichtbar
+
+const sToD=s=> s<=0.5 ? D_START*Math.pow(D_HALF/D_START,s/0.5)
+                      : D_TOT - D_HALF*Math.pow(D_END/D_HALF,(s-0.5)/0.5);
+const dToS=d=> d<=D_HALF ? 0.5*Math.log(Math.max(d,D_START)/D_START)/Math.log(D_HALF/D_START)
+                         : 0.5+0.5*Math.log(D_HALF/Math.max(D_TOT-d,D_END))/Math.log(D_HALF/D_END);
+function stateAt(d){
+  if(d<=D_ACC){const t=Math.sqrt(2*d*AU_M/A_ACC);return{v:A_ACC*t,t:t/YR_S+T_TOW};}
+  if(d<=D_TOT-D_BRK) return {v:V_C,t:T_TOW+T_ACC+(d-D_ACC)*AU_M/V_C/YR_S};
+  const x=(d-(D_TOT-D_BRK))*AU_M, v=Math.sqrt(Math.max(V_C*V_C-2*A_BRK*x,0));
+  return {v:v,t:T_TOW+T_ACC+T_CRU+(V_C-v)/A_BRK/YR_S};
+}
+
+/* ============================================================
+   2. MASSSTAB
+   ============================================================ */
+let WL0=0.002, WS=12.6;
+function setScale(d){
+  if(mode==='system'){ WL0=0.002; WS=12.6; return; }
+  WL0=Math.min(300,Math.max(0.002,Math.min(d,D_TOT-d)/2000));
+  WS =115/Math.log10(1+1e6/WL0);
+}
+const warpF=L=> L<1e-12?0:WS*Math.log10(1+L/WL0)/L;
+const SZ_A=0.0042, SZ_0=1e-9;
+let boostSizes=true;
+function dispRadius(rAU,L,Lw){
+  const a=rAU/Math.max(L,1e-12);
+  return (boostSizes?Math.max(a,SZ_A*Math.log10(1+a/SZ_0)):a)*Lw;
+}
+
+/* ============================================================
+   3. GEOMETRIE (echte Koordinaten in AE, Ekliptik)
+   Proxima  : ekl. Breite -44,76°, Länge 239,11°, 4,2465 Lj
+   α Cen AB : ekl. Breite -42,59°, Länge 239,48°, 4,3441 Lj
+   Winkelabstand am Himmel 2,19°, räumlicher Abstand 12.058 AE
+   ============================================================ */
+const V3=(x,y,z)=>new THREE.Vector3(x,z,-y);
+const ORIGIN=new THREE.Vector3(0,0,0);
+const U_PROX=V3(-0.36447,-0.60934,-0.70418);
+const U_AB  =V3(-0.37386,-0.63417,-0.67680);
+const P0=V3(1,0,0);
+const P_PROX=P0.clone().addScaledVector(U_PROX,D_TOT);
+const P_AB  =P0.clone().addScaledVector(U_AB, 4.3441*LY_AU);
+
+// Bahnebene der Proxima-Planeten
+const PX_N=new THREE.Vector3(0.26,1,-0.42).normalize();
+const PX_E1=new THREE.Vector3(1,0,0).addScaledVector(PX_N,-PX_N.x).normalize();
+const PX_E2=new THREE.Vector3().crossVectors(PX_N,PX_E1);
+// Bahnebene der Ekliptik
+const SS_E1=new THREE.Vector3(1,0,0), SS_E2=new THREE.Vector3(0,0,-1);
+
+const PLANETS=[
+  {n:"Merkur", a:0.387, th:0.4, T:0.2408, rkm:2440,  c:0xa5988a},
+  {n:"Venus",  a:0.723, th:2.1, T:0.6152, rkm:6052,  c:0xe0c68c},
+  {n:"Erde",   a:1.000, th:0.0, T:1.0000, rkm:6371,  c:0x74a6cf},
+  {n:"Mars",   a:1.524, th:3.6, T:1.8808, rkm:3390,  c:0xcc7248},
+  {n:"Jupiter",a:5.204, th:1.2, T:11.862, rkm:69911, c:0xd8ae78},
+  {n:"Saturn", a:9.583, th:4.4, T:29.457, rkm:58232, c:0xe4cd9c},
+  {n:"Uranus", a:19.19, th:2.7, T:84.021, rkm:25362, c:0xa4d8de},
+  {n:"Neptun", a:30.07, th:5.3, T:164.79, rkm:24622, c:0x7188d4}
+];
+// Proxima d und b, beide 2025 mit NIRPS bestätigt. Proxima c wurde
+// durch dieselben Messungen widerlegt und fehlt deshalb hier.
+const PX_PLANETS=[
+  {n:"Proxima d", a:0.02881, th:1.1, T:5.12338/365.25, rkm:5160, c:0x9c8a7c},
+  {n:"Proxima b", a:0.04856, th:4.0, T:11.186/365.25,  rkm:7000, c:0xb56d52}
+];
+const HZ_IN=0.042, HZ_OUT=0.082;
+
+// α Cen B umläuft A in 79,91 Jahren, Abstand 11 bis 36 AE
+const B_A=23.52, B_ECC=0.5179, B_T=79.91, B_PH=0.18;
+const B_N=new THREE.Vector3(0.28,1,0.22).normalize();
+const B_E1=new THREE.Vector3(1,0,0).addScaledVector(B_N,-B_N.x).normalize();
+const B_E2=new THREE.Vector3().crossVectors(B_N,B_E1);
+const P_ABB=P_AB.clone().add(B_E1.clone().multiplyScalar(12));
+function cenBPos(t,out){
+  const Mm=((2*Math.PI*(t/B_T+B_PH))%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+  let E=Mm; for(let i=0;i<6;i++) E-=(E-B_ECC*Math.sin(E)-Mm)/(1-B_ECC*Math.cos(E));
+  return out.copy(P_AB).addScaledVector(B_E1,B_A*(Math.cos(E)-B_ECC))
+                       .addScaledVector(B_E2,B_A*Math.sqrt(1-B_ECC*B_ECC)*Math.sin(E));
+}
+
+/* ============================================================
+   4. SZENE
+   ============================================================ */
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x05070a);
+const camera=new THREE.PerspectiveCamera(50,1,0.02,6000);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+document.getElementById('stage').appendChild(renderer.domElement);
+scene.add(new THREE.AmbientLight(0x9dabb8,0.72));
+const sunLight=new THREE.PointLight(0xfff0d0,1.8,0); scene.add(sunLight);
+const pxLight=new THREE.PointLight(0xff8a5a,0.0,0); scene.add(pxLight);
+const camLight=new THREE.DirectionalLight(0xc9d6e2,0.5); camLight.position.set(1,1,1); scene.add(camLight);
+
+(function(){
+  const n=3200,pos=new Float32Array(n*3);
+  for(let i=0;i<n;i++){
+    const r=2600+Math.random()*800,t=Math.random()*6.283,p=Math.acos(2*Math.random()-1);
+    pos[i*3]=r*Math.sin(p)*Math.cos(t); pos[i*3+1]=r*Math.sin(p)*Math.sin(t); pos[i*3+2]=r*Math.cos(p);
+  }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xa8b6c2,size:1.5,sizeAttenuation:false,transparent:true,opacity:.6})));
+})();
+
+/* --- Körper --- */
+const bodies=[];
+function makeBody(name,pos,rkm,color,absMag,emis){
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,28,18),
+    new THREE.MeshStandardMaterial({color:color,emissive:emis||0x000000,emissiveIntensity:emis?1:0,roughness:.8,metalness:.05}));
+  scene.add(mesh);
+  const gg=new THREE.BufferGeometry();
+  gg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(3),3));
+  const glow=new THREE.Points(gg,new THREE.PointsMaterial({color:color,size:4,sizeAttenuation:false,
+    transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false}));
+  scene.add(glow);
+  const b={name:name,pos:pos,rAU:rkm/AU_KM,rCube:Math.cbrt(rkm/6371),mesh:mesh,glow:glow,absMag:absMag,orb:null,label:null};
+  bodies.push(b); return b;
+}
+makeBody("Sonne",ORIGIN.clone(),696000,0xfff0c4,4.83,0xffe0a0);
+PLANETS.forEach(p=>{
+  const b=makeBody(p.n,V3(p.a*Math.cos(p.th),p.a*Math.sin(p.th),0),p.rkm,p.c,null,null);
+  b.orb={a:p.a,T:p.T,th:p.th,ctr:ORIGIN,e1:SS_E1,e2:SS_E2};
+});
+makeBody("Proxima",P_PROX,107000,0xff9070,15.60,0xff7a55);
+PX_PLANETS.forEach(p=>{
+  const b=makeBody(p.n,P_PROX.clone(),p.rkm,p.c,null,null);
+  b.orb={a:p.a,T:p.T,th:p.th,ctr:P_PROX,e1:PX_E1,e2:PX_E2};
+});
+makeBody("α Cen A",P_AB,851000,0xfff4d6,4.38,0xffeaba);
+makeBody("α Cen B",P_ABB,600000,0xffcc92,5.71,0xffbb78);
+
+function moveBodies(t){
+  const tp=t-T_TOW;
+  bodies.forEach(b=>{
+    if(!b.orb) return;
+    const o=b.orb, th=o.th+2*Math.PI*tp/o.T;
+    b.pos.copy(o.ctr).addScaledVector(o.e1,o.a*Math.cos(th)).addScaledVector(o.e2,o.a*Math.sin(th));
+  });
+  cenBPos(tp,P_ABB);
+}
+
+/* --- Punktwolken --- */
+function cloud(src,color,size,op){
+  const pos=new Float32Array(src.length*3);
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const o=new THREE.Points(g,new THREE.PointsMaterial({color:color,size:size,sizeAttenuation:false,transparent:true,opacity:op,depthWrite:false}));
+  scene.add(o); return {obj:o,src:src,arr:pos};
+}
+function shell(n,rMin,rMax,c){
+  const s=[]; for(let i=0;i<n;i++){
+    const r=rMin*Math.pow(rMax/rMin,Math.random()), t=Math.random()*6.283, p=Math.acos(2*Math.random()-1);
+    s.push(new THREE.Vector3(c.x+r*Math.sin(p)*Math.cos(t),c.y+r*Math.cos(p),c.z+r*Math.sin(p)*Math.sin(t)));
+  } return s;
+}
+function discEcl(n,rMin,rMax,th){
+  const s=[]; for(let i=0;i<n;i++){
+    const r=rMin+Math.random()*(rMax-rMin), t=Math.random()*6.283;
+    s.push(V3(r*Math.cos(t),r*Math.sin(t),(Math.random()-.5)*th));
+  } return s;
+}
+const clouds=[
+  cloud(discEcl(520,30,50,3.5),        0x93a8b6,1.7,.6),
+  cloud(shell(420,117,124,ORIGIN),     0x5fb0cc,1.6,.55),
+  cloud(shell(700,2000,20000,ORIGIN),  0x818f76,1.5,.45),
+  cloud(shell(880,20000,100000,ORIGIN),0x717d6b,1.3,.34),
+  cloud(shell(520,2000,90000,P_AB),    0x8f8472,1.3,.34)
+];
+
+/* --- Linien --- */
+const lines=[];
+function line(src,color,op){
+  const pos=new Float32Array(src.length*3);
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const o=new THREE.Line(g,new THREE.LineBasicMaterial({color:color,transparent:true,opacity:op}));
+  scene.add(o); lines.push({obj:o,src:src,arr:pos}); return o;
+}
+function ring(ctr,e1,e2,r,color,op,n){
+  const s=[]; n=n||150;
+  for(let i=0;i<=n;i++){const t=i/n*6.2832;
+    s.push(ctr.clone().addScaledVector(e1,r*Math.cos(t)).addScaledVector(e2,r*Math.sin(t)));}
+  return line(s,color,op);
+}
+PLANETS.forEach(p=>ring(ORIGIN,SS_E1,SS_E2,p.a,0x54636f,.7));
+PX_PLANETS.forEach(p=>ring(P_PROX,PX_E1,PX_E2,p.a,0xa5705a,.85));
+ring(P_PROX,PX_E1,PX_E2,HZ_IN, 0x4f8f5c,.55);
+ring(P_PROX,PX_E1,PX_E2,HZ_OUT,0x4f8f5c,.55);
+{
+  const s=[]; for(let i=0;i<=160;i++){const E=i/160*6.2832;
+    s.push(P_AB.clone().addScaledVector(B_E1,B_A*(Math.cos(E)-B_ECC))
+                        .addScaledVector(B_E2,B_A*Math.sqrt(1-B_ECC*B_ECC)*Math.sin(E)));}
+  line(s,0x6a6255,.6);
+}
+{
+  const s=[]; for(let i=0;i<=260;i++) s.push(P0.clone().addScaledVector(U_PROX,D_START*Math.pow(D_TOT/D_START,i/260)));
+  line(s,0xc9a253,.45);
+}
+
+/* ============================================================
+   5. SCHIFF (stark überhöht)
+   ============================================================ */
+const ship=new THREE.Group(); scene.add(ship);
+const M=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,metalness:.6,roughness:.42},o||{}));
+const HZ=Math.PI/2;
+function P(geo,mat,z,rx){const m=new THREE.Mesh(geo,mat);m.position.z=z;if(rx)m.rotation.x=rx;ship.add(m);return m;}
+P(new THREE.CylinderGeometry(0.40,0.52,0.11,28),M(0x8fa6b2,{roughness:.85,metalness:.15}),1.50,HZ);
+P(new THREE.CylinderGeometry(0.46,0.46,0.02,28),M(0x9fb4bf,{transparent:true,opacity:.55}),1.40,HZ);
+P(new THREE.CylinderGeometry(0.44,0.44,0.02,28),M(0x9fb4bf,{transparent:true,opacity:.45}),1.33,HZ);
+P(new THREE.CylinderGeometry(0.44,0.44,0.30,28),M(0x4e7a8c),1.14,HZ);
+P(new THREE.CylinderGeometry(0.055,0.055,2.95,14),M(0xa08b5a,{metalness:.85}),0.10,HZ);
+P(new THREE.CylinderGeometry(0.50,0.50,1.02,32,1,true),
+  M(0x3a424b,{transparent:true,opacity:.15,side:THREE.DoubleSide,metalness:.7}),0.56,HZ);
+const ringA=P(new THREE.TorusGeometry(0.45,0.075,10,44),M(0xc4703c),0.31);
+const ringB=P(new THREE.TorusGeometry(0.45,0.075,10,44),M(0x6e8f4e),0.81);
+for(let r=0;r<2;r++) for(let i=0;i<6;i++){
+  const a=i/6*6.283, s=new THREE.Mesh(new THREE.BoxGeometry(0.022,0.40,0.05),M(0x8b7f66,{metalness:.85}));
+  s.position.set(Math.cos(a)*0.25,Math.sin(a)*0.25,r?0.81:0.31); s.rotation.z=a-HZ; ship.add(s);
+}
+P(new THREE.CylinderGeometry(0.17,0.17,0.24,20),M(0xb08a4a),-0.10,HZ);
+P(new THREE.CylinderGeometry(0.19,0.19,0.24,20),M(0x4f9184),-0.32,HZ);
+P(new THREE.CylinderGeometry(0.11,0.11,0.28,18),M(0xc25b4e),-0.58,HZ);
+for(let i=0;i<2;i++){
+  const p=new THREE.Mesh(new THREE.BoxGeometry(0.72,0.012,0.26),M(0x6b7480,{roughness:.8,side:THREE.DoubleSide}));
+  p.position.set(i?0.42:-0.42,0,-0.58); ship.add(p);
+}
+P(new THREE.CylinderGeometry(0.27,0.27,0.035,28),M(0x5c6570,{roughness:.9,metalness:.2}),-0.76,HZ);
+P(new THREE.CylinderGeometry(0.16,0.16,0.34,20),M(0x7a8290),-0.99,HZ);
+for(let i=0;i<6;i++){
+  const a=i/6*6.283, s=new THREE.Mesh(new THREE.CylinderGeometry(0.016,0.016,0.22,8),M(0x77463a));
+  s.position.set(Math.cos(a)*0.13,Math.sin(a)*0.13,-1.26); s.rotation.x=HZ; ship.add(s);
+}
+P(new THREE.CylinderGeometry(0.44,0.27,0.05,28),M(0x9a5a46),-1.40,HZ);
+const plume=new THREE.Mesh(new THREE.ConeGeometry(0.30,1.5,20,1,true),
+  new THREE.MeshBasicMaterial({color:0xff9a4a,transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+plume.rotation.x=-HZ; plume.position.z=-2.2; ship.add(plume);
+const sail=new THREE.Mesh(new THREE.TorusGeometry(1.15,0.014,8,96),
+  new THREE.MeshBasicMaterial({color:0x9fd6ff,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false}));
+sail.position.z=-1.55; ship.add(sail);
+for(let i=0;i<6;i++){
+  const a=i/6*6.283, s=new THREE.Mesh(new THREE.BoxGeometry(0.012,1.1,0.012),
+    new THREE.MeshBasicMaterial({color:0x7fb0cc,transparent:true,opacity:.45}));
+  s.position.set(Math.cos(a)*0.58,Math.sin(a)*0.58,0); s.rotation.z=a-HZ; sail.add(s);
+}
+ship.lookAt(U_PROX);
+
+/* ============================================================
+   6. BESCHRIFTUNGEN
+   ============================================================ */
+const layer=document.createElement('div');
+layer.style.cssText='position:fixed;inset:0;pointer-events:none;overflow:hidden';
+document.body.appendChild(layer);
+bodies.forEach(b=>{
+  const e=document.createElement('div'); e.textContent=b.name;
+  e.style.cssText='position:absolute;transform:translate(10px,-8px);font:10.5px "Helvetica Neue",Helvetica,Arial;'
+   +'color:#b6bdc4;text-shadow:0 0 6px #05070a,0 0 3px #05070a;white-space:nowrap';
+  layer.appendChild(e); b.label=e;
+});
+let showLabels=true;
+
+/* ============================================================
+   7. KAMERA
+   ============================================================ */
+let camTheta=2.35, camPhi=1.28, camDist=8.5, camDistSys=150, mode='chase';
+const inSystem=()=>mode==='system';
+function placeCam(){
+  if(mode==='system'||mode==='chase'){
+    ship.visible=true;
+    const D=inSystem()?camDistSys:camDist;
+    camera.position.set(D*Math.sin(camPhi)*Math.cos(camTheta),D*Math.cos(camPhi),D*Math.sin(camPhi)*Math.sin(camTheta));
+    camera.lookAt(0,0,0);
+  }else{
+    ship.visible=false;
+    camera.position.set(0,0,0);
+    const dir=mode==='front'?U_PROX.clone():U_PROX.clone().negate();
+    dir.applyQuaternion(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),camTheta-2.35));
+    camera.lookAt(dir.multiplyScalar(200));
+  }
+  camLight.position.copy(camera.position).normalize();
+}
+const el=renderer.domElement;
+let drag=false,lx=0,ly=0,pinch=0;
+el.addEventListener('pointerdown',e=>{drag=true;lx=e.clientX;ly=e.clientY;el.setPointerCapture(e.pointerId)});
+el.addEventListener('pointermove',e=>{
+  if(!drag)return;
+  camTheta-=(e.clientX-lx)*0.006;
+  camPhi=Math.max(0.15,Math.min(Math.PI-0.15,camPhi-(e.clientY-ly)*0.006));
+  lx=e.clientX;ly=e.clientY;placeCam();
+});
+el.addEventListener('pointerup',()=>drag=false);
+el.addEventListener('pointercancel',()=>drag=false);
+function zoom(k){ if(inSystem()) camDistSys=Math.max(6,Math.min(700,camDistSys*k));
+                  else camDist=Math.max(2.6,Math.min(120,camDist*k)); placeCam(); }
+el.addEventListener('wheel',e=>{e.preventDefault();zoom(1+Math.sign(e.deltaY)*0.12)},{passive:false});
+el.addEventListener('touchmove',e=>{
+  if(e.touches.length===2){
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    if(pinch) zoom(pinch/d);
+    pinch=d;drag=false;
+  }
+},{passive:true});
+el.addEventListener('touchend',()=>pinch=0);
+function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}
+addEventListener('resize',resize);resize();placeCam();
+
+/* ============================================================
+   8. WELT
+   ============================================================ */
+const shipPos=new THREE.Vector3(), tmp=new THREE.Vector3(), WC=new THREE.Vector3();
+const magOf=(aM,d)=>aM+5*Math.log10(Math.max(d,1e-6)/206264.8/10);
+
+function buildWorld(d,t){
+  setScale(d);
+  moveBodies(t);
+  shipPos.copy(P0).addScaledVector(U_PROX,d);
+  if(inSystem()) WC.copy(d<=D_HALF?ORIGIN:P_PROX); else WC.copy(shipPos);
+
+  tmp.copy(shipPos).sub(WC);
+  ship.position.copy(tmp).multiplyScalar(warpF(tmp.length()));
+  ship.scale.setScalar(inSystem()?2.6:1);
+
+  tmp.copy(ORIGIN).sub(WC);
+  sunLight.position.copy(tmp).multiplyScalar(warpF(tmp.length())||0);
+  const Ls=shipPos.length();
+  sunLight.intensity=Math.max(0.06,Math.min(2.2,3/Math.max(Ls,0.4)));
+  tmp.copy(P_PROX).sub(WC);
+  pxLight.position.copy(tmp).multiplyScalar(warpF(tmp.length())||0);
+  const Lp=shipPos.distanceTo(P_PROX);
+  pxLight.intensity=Math.max(0,Math.min(2.0,0.05/Math.max(Lp,0.02)));
+
+  bodies.forEach(b=>{
+    tmp.copy(b.pos).sub(WC);
+    const L=tmp.length(), f=warpF(L), Lw=L*f;
+    b.mesh.position.copy(tmp).multiplyScalar(f);
+    const Lship=b.pos.distanceTo(shipPos);
+    b.mesh.scale.setScalar(inSystem()?0.9*b.rCube:Math.max(dispRadius(b.rAU,Lship,Math.max(Lw,1e-4)),1e-5));
+    const a=b.glow.geometry.attributes.position;
+    a.setXYZ(0,b.mesh.position.x,b.mesh.position.y,b.mesh.position.z); a.needsUpdate=true;
+    if(b.absMag!==null){
+      const m=magOf(b.absMag,Lship);
+      b.glow.visible=true;
+      b.glow.material.size=Math.max(2,Math.min(30,24*Math.pow(10,-0.12*(m+5))));
+      b.glow.material.opacity=Math.max(.10,Math.min(1,1-(m-1)/12));
+    }else{
+      b.glow.visible=Lship<5000;
+      b.glow.material.size=Math.max(1.8,Math.min(9,(b.rAU/Math.max(Lship,1e-9))*5000));
+      b.glow.material.opacity=Math.max(.1,Math.min(.85,1.4-Lship/70));
+    }
+  });
+
+  clouds.concat(lines).forEach(c=>{
+    const a=c.arr;
+    for(let i=0;i<c.src.length;i++){
+      tmp.copy(c.src[i]).sub(WC);
+      const f=warpF(tmp.length());
+      a[i*3]=tmp.x*f; a[i*3+1]=tmp.y*f; a[i*3+2]=tmp.z*f;
+    }
+    c.obj.geometry.attributes.position.needsUpdate=true;
+    c.obj.geometry.computeBoundingSphere();
+  });
+
+  plume.visible=d<D_ACC;
+  sail.visible =d>D_TOT-D_BRK;
+}
+
+/* ============================================================
+   9. PHASEN
+   ============================================================ */
+const PH=[
+ {to:1,tag:"Phase 1",t:"Schleppphase",x:"Solarelektrischer Schlepp aus dem Erde-Mond-System. Der Pulsantrieb darf hier noch nicht zünden."},
+ {to:30.1,tag:"Phase 2",t:"Planetenzone",x:"Schub 3,17 mm/s². Die Bahn führt 45 Grad unter die Ekliptik, die Planetenbahnen bleiben zur Seite."},
+ {to:120,tag:"Phase 2",t:"Kuipergürtel und Heliopause",x:"Neptunbahn nach 1,7 Jahren bei 169 km/s. Bei 120 AE endet der Einfluss des Sonnenwinds."},
+ {to:2000,tag:"Phase 2",t:"Interstellares Medium",x:"Wasserstoff trifft frontal mit 47 keV je Proton, 3 × 10¹¹ pro m² und Sekunde. Dafür sitzt das Eisschild vorn."},
+ {to:D_ACC,tag:"Phase 2",t:"Innere Oortwolke",x:"Die letzten Puls-Ladungen. Brennschluss bei 9.487 AE nach dreißig Jahren."},
+ {to:100000,tag:"Phase 3",t:"Marschfahrt",x:"Antriebslos für 385 Jahre. Voraus steht nicht das Ziel, sondern α Cen A und B: Proxima selbst hat aus dieser Entfernung nur Größenklasse 11 und ist mit bloßem Auge unsichtbar."},
+ {to:D_HALF,tag:"Phase 3",t:"Äußere Oortwolke",x:"Bis etwa 100.000 AE reicht die Gravitationsbindung an die Sonne. Danach hält nichts mehr."},
+ {to:D_VIS,tag:"Phase 3",t:"Zwischen den Sternen",x:"Halbstrecke bei 2,12 Lichtjahren nach rund 225 Jahren. Wechsel von der Lokalen Wolke in die G-Wolke."},
+ {to:D_TOT-D_BRK,tag:"Phase 3",t:"Proxima wird sichtbar",x:"Bei 24.800 AE Restweg erreicht Proxima Größenklasse 6. Zum ersten Mal seit dem Start sieht die Besatzung ihr Ziel mit bloßem Auge, nach etwa 380 Jahren."},
+ {to:D_TOT-1000,tag:"Phase 4",t:"Bremsphase",x:"Magsegel ausgefahren, 380 m Durchmesser. Fünfzig Jahre Bremsweg über 15.800 AE. α Cen A und B stehen 12.058 AE seitlich und leuchten mit Größenklasse -6,8."},
+ {to:D_TOT-0.5,tag:"Phase 4",t:"Anflug",x:"Proxima ist ein roter Zwerg mit 0,15 Sonnenradien und 0,0017 Sonnenleuchtkraft. Die habitable Zone liegt zwischen 0,042 und 0,082 AE, gezeichnet als grüne Doppellinie."},
+ {to:1e12,tag:"Phase 5",t:"Ankunft bei Proxima b",x:"Nach 466 Jahren und achtzehn Generationen. Proxima b umkreist den Stern in 11,2 Tagen, Proxima d in 5,1 Tagen. Beide wurden 2025 mit NIRPS bestätigt, der frühere Kandidat Proxima c durch dieselben Messungen widerlegt."}
+];
+const nf=(x,g)=>x.toLocaleString('de-DE',{minimumFractionDigits:g,maximumFractionDigits:g});
+const fd=au=> au<0.02?nf(au*AU_KM/1e6,1)+' Mio km'
+            : au<1000?nf(au,au<10?2:0)+' AE'
+            : au<LY_AU?nf(Math.round(au),0)+' AE'
+            : nf(au/LY_AU,3)+' Lj';
+const $=i=>document.getElementById(i);
+const slider=$('slider');
+
+function update(){
+  const d=sToD(+slider.value), st=stateAt(d);
+  buildWorld(d,st.t);
+  const rest=Math.max(D_TOT-d,0);
+  $('sT').textContent=nf(st.t,1)+' a';
+  $('sV').textContent=nf(st.v/1000,0)+' km/s';
+  $('sD1').textContent=fd(shipPos.length());
+  $('sD2').textContent=fd(rest);
+  $('sM').textContent=nf(magOf(15.60,Math.max(shipPos.distanceTo(P_PROX),1e-4)),1)+' mag';
+  $('sG').textContent=Math.max(1,Math.ceil(st.t/26))+'/18';
+  let p=PH[PH.length-1]; for(const q of PH) if(d<q.to){p=q;break;}
+  $('pTag').textContent=p.tag; $('pTitle').textContent=p.t; $('ptext').textContent=p.x;
+}
+
+[["Start",D_START],["Jupiter",5.2],["Neptun",30.1],["Heliopause",120],["Brennschluss",D_ACC],
+ ["Oortwolke",20000],["Halbstrecke",D_HALF],["Proxima sichtbar",D_VIS],["Bremsbeginn",D_TOT-D_BRK],
+ ["Anflug",D_TOT-5],["Proxima b",D_TOT-D_END]]
+.forEach(([n,d])=>{const b=document.createElement('button');b.textContent=n;
+  b.onclick=()=>{slider.value=dToS(d);update()};$('chips').appendChild(b)});
+slider.addEventListener('input',update);
+
+function setMode(m,b){mode=m;['vChase','vSystem','vFront','vBack'].forEach(i=>$(i).classList.remove('on'));
+  b.classList.add('on');update();placeCam()}
+$('vChase').onclick=e=>setMode('chase',e.target);
+$('vSystem').onclick=e=>setMode('system',e.target);
+$('vFront').onclick=e=>setMode('front',e.target);
+$('vBack').onclick=e=>setMode('back',e.target);
+$('vSize').onclick=e=>{boostSizes=!boostSizes;e.target.classList.toggle('on',boostSizes);
+  e.target.textContent=boostSizes?'Größen betont':'Größen echt';update()};
+$('vLabels').onclick=e=>{showLabels=!showLabels;e.target.classList.toggle('on',showLabels);
+  e.target.textContent=showLabels?'Namen an':'Namen aus'};
+
+let playing=false,last=0;
+$('play').onclick=e=>{playing=!playing;e.target.textContent=playing?'Pause':'Abspielen';
+  e.target.classList.toggle('on',playing); if(playing&&+slider.value>=0.999)slider.value=0; last=0};
+
+/* ============================================================
+   10. LAUF
+   ============================================================ */
+const pv=new THREE.Vector3();
+function labels(){
+  bodies.forEach(b=>{
+    if(!showLabels){b.label.style.display='none';return}
+    pv.copy(b.mesh.position).project(camera);
+    const vis=pv.z<1&&Math.abs(pv.x)<1.05&&Math.abs(pv.y)<1.05;
+    b.label.style.display=vis?'block':'none';
+    if(vis){b.label.style.left=((pv.x*.5+.5)*innerWidth)+'px';b.label.style.top=((-pv.y*.5+.5)*innerHeight)+'px'}
+  });
+}
+function loop(ts){
+  requestAnimationFrame(loop);
+  if(playing){
+    if(!last)last=ts;
+    const dt=Math.min((ts-last)/1000,0.1); last=ts;
+    let v=+slider.value+dt*0.032;
+    if(v>=1){v=1;playing=false;$('play').textContent='Abspielen';$('play').classList.remove('on')}
+    slider.value=v; update();
+  }
+  ringA.rotation.z+=0.016; ringB.rotation.z-=0.016;
+  if(sail.visible) sail.material.opacity=.5+.28*Math.sin(ts*.003);
+  if(plume.visible) plume.material.opacity=.28+.16*Math.sin(ts*.011);
+  labels();
+  renderer.render(scene,camera);
+}
+update(); loop(0);
+</script>

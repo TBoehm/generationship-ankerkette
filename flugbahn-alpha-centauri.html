@@ -1,0 +1,479 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ankerkette, Flugbahn zum Centauri-System</title>
+<style>
+  :root{
+    --hull:#0b0e12; --panel:#151b21; --rule:#28313a;
+    --bone:#e6e2d8; --dim:#98a1a9; --brass:#c9a253; --warm:#d98a4a; --cool:#7fa8c4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--hull);color:var(--bone);
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(20px + env(safe-area-inset-bottom,0px))}
+
+  h1{font-size:15px;font-weight:600;line-height:1.2}
+  h1 span{color:var(--dim);font-weight:400}
+
+  /* Himmelsfenster */
+  .sky{
+    margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:1px;
+    background:var(--rule);border:1px solid var(--rule);border-radius:4px;overflow:hidden;
+  }
+  .sky > div{background:#05070a;padding:10px 12px 12px;position:relative}
+  .sky .lbl{font-size:10.5px;color:var(--dim);font-family:ui-monospace,Menlo,monospace}
+  .starbox{height:96px;display:flex;align-items:center;justify-content:center;position:relative}
+  .starbox canvas{display:block}
+  .sky .val{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--dim);line-height:1.55}
+  .sky .val b{color:var(--bone);font-weight:600}
+
+  /* Kennzahlen */
+  .stats{
+    margin-top:10px;display:grid;grid-template-columns:repeat(2,1fr);gap:1px;
+    background:var(--rule);border:1px solid var(--rule);border-radius:4px;overflow:hidden;
+  }
+  .stats div{background:var(--panel);padding:8px 11px}
+  .stats .k{font-size:10px;color:var(--dim);font-family:ui-monospace,Menlo,monospace}
+  .stats .v{font-size:15px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+  .stats .v small{font-size:11px;font-weight:400;color:var(--dim)}
+  @media(min-width:620px){ .stats{grid-template-columns:repeat(4,1fr)} }
+
+  /* Korridor */
+  #corridorWrap{margin-top:12px;border:1px solid var(--rule);border-radius:4px;background:#05070a;overflow:hidden}
+  #corridor{display:block;width:100%}
+
+  /* Regler */
+  .ctrl{margin-top:14px}
+  .ctrl .head{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+  .ctrl .head .t{font-size:11px;color:var(--dim);font-family:ui-monospace,Menlo,monospace;flex:1}
+  button.play{
+    background:none;border:1px solid var(--rule);color:var(--dim);font:inherit;font-size:11.5px;
+    padding:6px 12px;border-radius:3px;cursor:pointer;
+  }
+  button.play.on{border-color:var(--brass);color:var(--brass)}
+  input[type=range]{
+    width:100%;-webkit-appearance:none;appearance:none;background:none;height:26px;cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-runnable-track{height:4px;background:linear-gradient(90deg,#d98a4a,#3d4952 45%,#3d4952 55%,#7fa8c4);border-radius:2px}
+  input[type=range]::-moz-range-track{height:4px;background:linear-gradient(90deg,#d98a4a,#3d4952 45%,#3d4952 55%,#7fa8c4);border-radius:2px}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brass);
+    border:2px solid #0b0e12;margin-top:-7px;box-shadow:0 0 0 1px var(--brass);
+  }
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--brass);border:2px solid #0b0e12}
+  input[type=range]:focus-visible{outline:2px solid var(--brass);outline-offset:4px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .chips button{
+    background:none;border:1px solid var(--rule);color:var(--dim);font:inherit;font-size:10.5px;
+    padding:5px 9px;border-radius:3px;cursor:pointer;white-space:nowrap;
+  }
+  .chips button:hover{border-color:var(--brass);color:var(--brass)}
+
+  /* Phasentext */
+  .phase{margin-top:16px;border-top:1px solid var(--rule);padding-top:13px}
+  .phase .tag{
+    display:inline-block;font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--brass);
+    border:1px solid rgba(201,162,83,.4);padding:2px 7px;border-radius:2px;
+  }
+  .phase h2{font-size:16px;font-weight:600;margin-top:8px;line-height:1.25}
+  .phase p{font-size:13px;line-height:1.6;margin-top:9px;color:#cfcdc6;max-width:66ch}
+  .note{margin-top:14px;font-size:11px;color:var(--dim);line-height:1.55;border-top:1px solid var(--rule);padding-top:11px}
+</style>
+
+<div class="wrap">
+  <h1>Ankerkette <span>Flugbahn vom Mondorbit nach Alpha Centauri</span></h1>
+
+  <div class="sky">
+    <div>
+      <div class="lbl">Blick zurück</div>
+      <div class="starbox"><canvas id="skySun"></canvas></div>
+      <div class="val" id="sunVal"></div>
+    </div>
+    <div>
+      <div class="lbl">Blick voraus</div>
+      <div class="starbox"><canvas id="skyCen"></canvas></div>
+      <div class="val" id="cenVal"></div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div><div class="k">Missionszeit</div><div class="v" id="sT"></div></div>
+    <div><div class="k">Geschwindigkeit</div><div class="v" id="sV"></div></div>
+    <div><div class="k">Abstand Sonne</div><div class="v" id="sD1"></div></div>
+    <div><div class="k">Rest bis Ziel</div><div class="v" id="sD2"></div></div>
+  </div>
+
+  <div id="corridorWrap"><canvas id="corridor"></canvas></div>
+
+  <div class="ctrl">
+    <div class="head">
+      <div class="t" id="scaleNote"></div>
+      <button class="play" id="play">Abspielen</button>
+    </div>
+    <input type="range" id="slider" min="0" max="1" step="0.00005" value="0" aria-label="Position auf der Flugbahn">
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="phase">
+    <span class="tag" id="pTag"></span>
+    <h2 id="pTitle"></h2>
+    <p id="pText"></p>
+  </div>
+
+  <div class="note" id="footNote"></div>
+</div>
+
+<script>
+/* ============================================================
+   KONSTANTEN UND FLUGPROFIL
+   ============================================================ */
+const AU_KM = 1.495978707e8;
+const AU_M  = 1.495978707e11;
+const LY_AU = 63241.077;
+const YR_S  = 3.156e7;
+
+const D_TOT  = 4.344 * LY_AU;      // AE bis Alpha Centauri AB
+const D_ACC  = 9487;               // AE Beschleunigungsstrecke
+const D_BRK  = 15800;              // AE Bremsstrecke
+const V_C    = 2.998e6;            // m/s Marschgeschwindigkeit
+const A_ACC  = V_C*V_C/(2*D_ACC*AU_M);
+const A_BRK  = V_C*V_C/(2*D_BRK*AU_M);
+const T_TOW  = 1.5;                // Jahre Schleppphase
+const T_ACC  = V_C/A_ACC/YR_S;
+const T_BRK  = V_C/A_BRK/YR_S;
+const D_CRU  = D_TOT - D_ACC - D_BRK;
+const T_CRU  = D_CRU*AU_M/V_C/YR_S;
+const T_TOT  = T_TOW + T_ACC + T_CRU + T_BRK;
+
+const D_MIN  = 0.0026;             // AE, Mondbahnradius
+const D_HALF = D_TOT/2;
+
+// Regler: logarithmisch von beiden Enden her
+function sToD(s){
+  if(s <= 0.5){
+    const u = s/0.5;
+    return D_MIN * Math.pow(D_HALF/D_MIN, u);
+  }
+  const u = (s-0.5)/0.5;
+  const rest = D_HALF * Math.pow(D_MIN/D_HALF, u);
+  return D_TOT - rest;
+}
+function dToS(d){
+  if(d <= D_HALF) return 0.5*Math.log(Math.max(d,D_MIN)/D_MIN)/Math.log(D_HALF/D_MIN);
+  const rest = Math.max(D_TOT-d, D_MIN);
+  return 0.5 + 0.5*Math.log(D_HALF/rest)/Math.log(D_HALF/D_MIN);
+}
+
+function stateAt(d){
+  let v, t;
+  if(d <= D_ACC){
+    const m = d*AU_M;
+    t = Math.sqrt(2*m/A_ACC)/YR_S;
+    v = A_ACC*Math.sqrt(2*m/A_ACC);
+    t += T_TOW;
+  } else if(d <= D_TOT - D_BRK){
+    v = V_C;
+    t = T_TOW + T_ACC + (d-D_ACC)*AU_M/V_C/YR_S;
+  } else {
+    const x = (d-(D_TOT-D_BRK))*AU_M;
+    v = Math.sqrt(Math.max(V_C*V_C - 2*A_BRK*x, 0));
+    t = T_TOW + T_ACC + T_CRU + (V_C-v)/A_BRK/YR_S;
+  }
+  return {v:v, t:t};
+}
+
+/* ============================================================
+   MARKEN ENTLANG DER BAHN
+   ============================================================ */
+const MARKS = [
+  {d:0,            n:"Sonne",                 s:"star"},
+  {d:0.0026,       n:"Mondbahn, Werft",       s:"node"},
+  {d:1,            n:"Erdbahn",               s:"orbit"},
+  {d:5.20,         n:"Jupiterbahn",           s:"orbit"},
+  {d:9.54,         n:"Saturnbahn",            s:"orbit"},
+  {d:19.2,         n:"Uranusbahn",            s:"orbit"},
+  {d:30.1,         n:"Neptunbahn",            s:"orbit"},
+  {d:48,           n:"Kuipergürtel, Rand",    s:"field"},
+  {d:85,           n:"Terminationsschock",    s:"shell"},
+  {d:120,          n:"Heliopause",            s:"shell"},
+  {d:170,          n:"Voyager 1, Stand 2026", s:"node"},
+  {d:2000,         n:"Innere Oortwolke",      s:"field"},
+  {d:D_ACC,        n:"Brennschluss",          s:"burn"},
+  {d:20000,        n:"Äußere Oortwolke",      s:"field"},
+  {d:100000,       n:"Rand der Hillsphäre",   s:"shell"},
+  {d:D_HALF,       n:"Halbstrecke",           s:"node"},
+  {d:D_TOT-100000, n:"Oortwolke Centauri",    s:"field"},
+  {d:D_TOT-D_BRK,  n:"Bremsbeginn",           s:"burn"},
+  {d:D_TOT-12650,  n:"Proxima, seitlich",     s:"star"},
+  {d:D_TOT-120,    n:"Astropause Centauri",   s:"shell"},
+  {d:D_TOT-30,     n:"Planetenzone",          s:"orbit"},
+  {d:D_TOT,        n:"α Cen A und B",         s:"star"}
+];
+
+const CHIPS = [
+  {n:"Werft", d:0.0026},{n:"Jupiter", d:5.20},{n:"Heliopause", d:120},
+  {n:"Brennschluss", d:D_ACC},{n:"Oortwolke", d:20000},{n:"Halbstrecke", d:D_HALF},
+  {n:"Bremsbeginn", d:D_TOT-D_BRK},{n:"Proxima", d:D_TOT-12650},{n:"Ankunft", d:D_TOT}
+];
+
+/* ============================================================
+   PHASENTEXTE
+   ============================================================ */
+const PHASES = [
+  {to:0.01, tag:"Phase 0", title:"Werft im Mondorbit",
+   text:"Das Schiff liegt fertig montiert in einer Bahn um den Mond. Der Pulsantrieb darf hier nicht gezündet werden, der Vertrag von 1963 verbietet nukleare Explosionen im Weltraum. Eine solarelektrische Schleppstufe ist angekoppelt und übernimmt den Weg aus dem Erde-Mond-System heraus."},
+  {to:1, tag:"Phase 1", title:"Schleppphase",
+   text:"Mehrere Millionen Kilometer im Schlepp, etwa anderthalb Jahre. Erst danach fällt die erste Puls-Ladung. Ab hier läuft der Antrieb ohne Unterbrechung dreißig Jahre lang durch."},
+  {to:30.1, tag:"Phase 2", title:"Planetenzone",
+   text:"Der Schub beträgt 3,17 mm/s², das sind 0,00032 g. An Bord ist davon nichts zu spüren, zumal die Schubrichtung längs der Achse und damit senkrecht zur Rotationsebene der Ringe liegt. Die Bahn führt 43 Grad unter die Ekliptik, die Planeten bleiben weit zur Seite. Ein Swing-by wäre selbst bei Jupiter nur rund ein Prozent der benötigten Endgeschwindigkeit wert."},
+  {to:85, tag:"Phase 2", title:"Kuipergürtel",
+   text:"Die Neptunbahn liegt nach 1,7 Jahren bei 169 km/s hinter dem Schiff. Damit ist es bereits fünfzigmal schneller als Voyager 1 und für jede Wechselwirkung mit Kleinkörpern zu schnell. Der Antrieb läuft weiter."},
+  {to:120, tag:"Phase 2", title:"Terminationsschock",
+   text:"Bei etwa 85 AE bremst der Sonnenwind auf Unterschallgeschwindigkeit ab. Voyager 1 brauchte für diese Strecke 27 Jahre, das Schiff drei."},
+  {to:2000, tag:"Phase 2", title:"Jenseits der Heliopause",
+   text:"Ab rund 120 AE endet der Einfluss der Sonne, das Schiff fliegt in der Lokalen Interstellaren Wolke. Von hier an trifft es Wasserstoff frontal: bei 3.000 km/s trägt jedes Proton 47 keV, der Fluss liegt bei 3 × 10¹¹ pro Quadratmeter und Sekunde. Genau dafür sitzt das Eisschild vorn."},
+  {to:D_ACC, tag:"Phase 2", title:"Innere Oortwolke",
+   text:"Die Hills-Wolke beginnt bei einigen tausend AE. Ihre Objekte sind so weit verteilt, dass ein Treffer praktisch ausgeschlossen ist. Die letzten Puls-Ladungen werden gezündet."},
+  {to:100000, tag:"Phase 3", title:"Brennschluss und Marschfahrt",
+   text:"Nach dreißig Jahren und 9.487 AE ist die Endgeschwindigkeit erreicht, das sind 0,15 Lichtjahre oder 3,5 Prozent der Strecke. Der Antrieb schweigt für die nächsten 394 Jahre. An Bord beginnt der eigentliche Alltag: die erste Generation, die das Schiff gebaut hat, wird die Ankunft nicht erleben, und auch die nächsten fünfzehn nicht."},
+  {to:D_HALF, tag:"Phase 3", title:"Äußere Oortwolke",
+   text:"Bis etwa 100.000 AE reicht die Gravitationsbindung an die Sonne. Danach gibt es keinen Bezugspunkt mehr, der irgendetwas anzieht. Die Sonne ist zu einem hellen Stern geschrumpft, das Ziel noch nicht mehr als ein etwas hellerer."},
+  {to:D_TOT-100000, tag:"Phase 3", title:"Zwischen den Sternen",
+   text:"Die Halbstrecke liegt bei 2,17 Lichtjahren, erreicht nach rund 230 Jahren. Hier ist keiner der beiden Sterne dominant, und niemand an Bord hat je einen anderen Ort gesehen. Auf dem Weg wechselt das Schiff von der Lokalen Interstellaren Wolke in die G-Wolke, in die Alpha Centauri eingebettet ist."},
+  {to:D_TOT-D_BRK, tag:"Phase 3", title:"Annäherung",
+   text:"Das Zielsystem hat inzwischen eine eigene Oortwolke, sofern es eine besitzt. Alpha Centauri hat sich während des Flugs selbst genähert, mit 22,3 km/s radial, die Distanz ist von 4,37 auf 4,34 Lichtjahre gefallen. Gezielt wurde von Anfang an 0,45 Grad vor die Position von damals."},
+  {to:D_TOT-12650, tag:"Phase 4", title:"Bremsphase",
+   text:"Das Magsegel wird ausgefahren, eine supraleitende Schleife von 380 m Durchmesser, die gegen das interstellare Plasma arbeitet. Die Bremswirkung ist bei hoher Geschwindigkeit am stärksten und fällt danach ab, deshalb dauert das Abbremsen fünfzig Jahre über 15.800 AE. Die letzten hundert km/s sind die teuersten und brauchen vermutlich eine Restreserve an Puls-Ladungen."},
+  {to:D_TOT-120, tag:"Phase 4", title:"Vorbei an Proxima",
+   text:"Proxima Centauri liegt rund 0,2 Lichtjahre neben der Bahn zum Doppelstern. Der bekannte Planet Proxima b umkreist ihn in 0,0485 AE, gebunden rotierend und regelmäßig von Flares getroffen. Ob er oder eine Bahn um Centauri A das Ziel ist, entscheidet eine Generation, die beim Start noch nicht geboren war."},
+  {to:D_TOT+1, tag:"Phase 5", title:"Ankunft",
+   text:"Nach 476 Jahren und etwa achtzehn Generationen erreicht das Schiff das Doppelsternsystem. Jetzt werden Swing-bys zum ersten Mal nützlich: Sobald das Magsegel auf einige hundert km/s heruntergebremst hat, kann ein enger Vorbeiflug an Centauri A oder B erheblich ablenken und weitere Energie abbauen. Die Physik, die beim Start wertlos war, übernimmt den Einfang."}
+];
+function phaseAt(d){ for(const p of PHASES) if(d < p.to) return p; return PHASES[PHASES.length-1]; }
+
+/* ============================================================
+   FORMATIERUNG
+   ============================================================ */
+const nf = (x,dg) => x.toLocaleString('de-DE',{minimumFractionDigits:dg,maximumFractionDigits:dg});
+function fmtDist(auVal){
+  if(auVal < 0.02) return nf(auVal*AU_KM/1e6,2)+' <small>Mio km</small>';
+  if(auVal < 1000) return nf(auVal, auVal<10?2:1)+' <small>AE</small>';
+  if(auVal < LY_AU) return nf(Math.round(auVal),0)+' <small>AE</small>';
+  return nf(auVal/LY_AU,3)+' <small>Lj</small>';
+}
+function mag(absM, dAU){
+  const pc = Math.max(dAU,1e-6)/206264.8;
+  return absM + 5*Math.log10(pc/10);
+}
+function angDiamArcsec(radiusKm, dAU){
+  return 2*Math.atan(radiusKm/(dAU*AU_KM))*206264.8;
+}
+
+/* ============================================================
+   HIMMELSFENSTER
+   ============================================================ */
+function drawStar(cv, dAU, radiusKm, absM, tint){
+  const dpr = Math.min(devicePixelRatio||1,2);
+  const W = cv.clientWidth||140, H = 96;
+  cv.width = W*dpr; cv.height = H*dpr;
+  const g = cv.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,W,H);
+  const cx = W/2, cy = H/2;
+
+  const m = mag(absM, dAU);
+  const arc = angDiamArcsec(radiusKm, dAU);
+  let r = arc*0.0333;                       // 1800" (Sonne aus 1 AE) -> 60 px
+  const point = r < 2.2;
+  r = Math.max(r, 2.2);
+  r = Math.min(r, 44);
+
+  const glow = Math.max(4, Math.min(46, 46 - (m+27)*1.55));
+  const gr = g.createRadialGradient(cx,cy,0,cx,cy,r+glow);
+  gr.addColorStop(0, tint);
+  gr.addColorStop(r/(r+glow), tint);
+  gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.globalAlpha = point ? Math.max(0.25, Math.min(1, 1-(m-(-1))/8)) : 1;
+  g.fillStyle = gr;
+  g.beginPath(); g.arc(cx,cy,r+glow,0,7); g.fill();
+  g.globalAlpha = 1;
+  g.fillStyle = tint;
+  g.beginPath(); g.arc(cx,cy,r,0,7); g.fill();
+}
+
+/* ============================================================
+   KORRIDOR
+   ============================================================ */
+const cor = document.getElementById('corridor');
+const CMIN = 1e-4, CMAX = 4e5;           // AE, Abstandsfenster um das Schiff
+const DEC = Math.log10(CMAX/CMIN);
+const STYLE = {
+  star:{c:'#e8c66a', r:5}, node:{c:'#c9a253', r:3.4}, orbit:{c:'#7fa8c4', r:3},
+  shell:{c:'#7c9ea6', r:3}, field:{c:'#7d8a72', r:3}, burn:{c:'#d97a4a', r:3.8}
+};
+
+function drawCorridor(d){
+  const dpr = Math.min(devicePixelRatio||1,2);
+  const W = cor.clientWidth||340, H = 176;
+  cor.width = W*dpr; cor.height = H*dpr;
+  const g = cor.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,W,H);
+  const cx = W/2, cy = 118, half = W/2 - 8;
+  const px = dd => half*Math.log10(Math.abs(dd)/CMIN)/DEC;
+
+  // Dekadengitter
+  g.font = '9px ui-monospace, Menlo, monospace';
+  g.textAlign = 'center';
+  for(let e=-4; e<=5; e++){
+    const val = Math.pow(10,e);
+    const x = px(val);
+    if(x > half || x < 6) continue;
+    [1,-1].forEach(sg=>{
+      const X = cx + sg*x;
+      g.strokeStyle = 'rgba(60,70,80,.55)'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(X, 34); g.lineTo(X, cy+16); g.stroke();
+    });
+    let lab = e<0 ? nf(val,Math.abs(e)) : (val>=LY_AU? nf(val/LY_AU,1)+' Lj' : nf(val,0));
+    if(e>=0 && val<LY_AU) lab = nf(val,0);
+    g.fillStyle = '#5d6871';
+    g.fillText(lab, cx+px(val), cy+27);
+    g.fillText(lab, cx-px(val), cy+27);
+  }
+  g.fillStyle = '#4c565e';
+  g.fillText('◀ zurück   Abstand in AE   voraus ▶', cx, cy+41);
+
+  // Achse
+  g.strokeStyle = '#39434c'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(6, cy); g.lineTo(W-6, cy); g.stroke();
+
+  // Marken
+  const rows = [0,0,0,0];
+  const placed = [];
+  MARKS.forEach(mk=>{
+    const delta = mk.d - d;
+    const ad = Math.abs(delta);
+    let X;
+    if(ad < CMIN) X = cx;
+    else if(ad > CMAX) return;
+    else X = cx + Math.sign(delta)*px(ad);
+    const st = STYLE[mk.s];
+    g.fillStyle = st.c;
+    g.beginPath(); g.arc(X, cy, st.r, 0, 7); g.fill();
+    if(mk.s==='star'){ g.strokeStyle=st.c; g.globalAlpha=.35; g.beginPath(); g.arc(X,cy,st.r+4,0,7); g.stroke(); g.globalAlpha=1; }
+    // Beschriftung mit Zeilenversatz
+    g.font = '9.5px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    const w = g.measureText(mk.n).width;
+    let row = 0;
+    for(let r=0;r<4;r++){
+      const clash = placed.some(p=>p.row===r && Math.abs(p.x-X) < (p.w+w)/2 + 7);
+      if(!clash){ row=r; break; }
+      row = r;
+    }
+    placed.push({row:row,x:X,w:w});
+    const ly = cy - 12 - row*13;
+    g.strokeStyle = 'rgba(120,132,142,.4)';
+    g.beginPath(); g.moveTo(X, cy-4); g.lineTo(X, ly+3); g.stroke();
+    g.fillStyle = '#aeb6bd'; g.textAlign='center';
+    g.fillText(mk.n, X, ly);
+  });
+
+  // Schiff
+  g.fillStyle = '#c9a253';
+  g.beginPath();
+  g.moveTo(cx, cy+9); g.lineTo(cx-5, cy+19); g.lineTo(cx+5, cy+19); g.closePath(); g.fill();
+  g.strokeStyle = '#c9a253'; g.lineWidth = 1.2;
+  g.beginPath(); g.moveTo(cx, 30); g.lineTo(cx, cy+8); g.stroke();
+}
+
+/* ============================================================
+   AKTUALISIEREN
+   ============================================================ */
+const slider = document.getElementById('slider');
+const els = {
+  T:document.getElementById('sT'), V:document.getElementById('sV'),
+  D1:document.getElementById('sD1'), D2:document.getElementById('sD2'),
+  sunVal:document.getElementById('sunVal'), cenVal:document.getElementById('cenVal'),
+  tag:document.getElementById('pTag'), title:document.getElementById('pTitle'), text:document.getElementById('pText'),
+  scale:document.getElementById('scaleNote')
+};
+
+function update(){
+  const s = +slider.value;
+  const d = sToD(s);
+  const st = stateAt(d);
+  const rest = Math.max(D_TOT-d, 0);
+
+  els.T.innerHTML = nf(st.t,1)+' <small>Jahre</small>';
+  els.V.innerHTML = nf(st.v/1000,0)+' <small>km/s · '+nf(st.v/2.99792458e8*100,3)+' % c</small>';
+  els.D1.innerHTML = fmtDist(d);
+  els.D2.innerHTML = fmtDist(rest);
+
+  const mS = mag(4.83, Math.max(d,0.0026));
+  const aS = angDiamArcsec(696000, Math.max(d,0.0026));
+  const mC = mag(4.38, Math.max(rest,0.0026));
+  const aC = angDiamArcsec(851000, Math.max(rest,0.0026));
+  els.sunVal.innerHTML = 'Sonne<br><b>'+nf(mS,2)+'</b> mag<br><b>'+(aS>60?nf(aS/3600,3)+'</b> Grad':nf(aS,1)+'</b> Bogensek.');
+  els.cenVal.innerHTML = 'α Cen A<br><b>'+nf(mC,2)+'</b> mag<br><b>'+(aC>60?nf(aC/3600,3)+'</b> Grad':nf(aC,1)+'</b> Bogensek.');
+
+  drawStar(document.getElementById('skySun'), Math.max(d,0.0026), 696000, 4.83, '#ffd9a0');
+  drawStar(document.getElementById('skyCen'), Math.max(rest,0.0026), 851000, 4.38, '#fff0cf');
+  drawCorridor(d);
+
+  const p = phaseAt(d);
+  els.tag.textContent = p.tag;
+  els.title.textContent = p.title;
+  els.text.textContent = p.text;
+
+  const gen = Math.max(1, Math.ceil(st.t/26));
+  els.scale.textContent = 'Regler logarithmisch, 7,7 Dekaden je Hälfte · Generation '+gen+' von 19 · '
+    + nf(d/D_TOT*100,3)+' % der Strecke';
+}
+
+/* Marken-Schnellwahl */
+const chips = document.getElementById('chips');
+CHIPS.forEach(c=>{
+  const b = document.createElement('button');
+  b.textContent = c.n;
+  b.onclick = ()=>{ slider.value = dToS(c.d); update(); };
+  chips.appendChild(b);
+});
+
+slider.addEventListener('input', update);
+addEventListener('resize', update);
+
+/* Abspielen */
+const playBtn = document.getElementById('play');
+let playing = false, raf = 0, last = 0;
+function tick(ts){
+  if(!playing) return;
+  if(!last) last = ts;
+  const dt = Math.min((ts-last)/1000, 0.1); last = ts;
+  let v = +slider.value + dt*0.045;
+  if(v >= 1){ v = 1; playing = false; playBtn.textContent='Abspielen'; playBtn.classList.remove('on'); }
+  slider.value = v; update();
+  if(playing) raf = requestAnimationFrame(tick);
+}
+playBtn.onclick = ()=>{
+  playing = !playing;
+  playBtn.textContent = playing ? 'Pause' : 'Abspielen';
+  playBtn.classList.toggle('on', playing);
+  if(playing){
+    if(+slider.value >= 0.999) slider.value = 0;
+    last = 0; raf = requestAnimationFrame(tick);
+  } else cancelAnimationFrame(raf);
+};
+
+document.getElementById('footNote').innerHTML =
+  'Profil: 1,5 a Schlepp, '+nf(T_ACC,0)+' a Beschleunigung bei 3,17 mm/s² über '+nf(D_ACC,0)+' AE, '
+  + nf(T_CRU,0)+' a Marschfahrt bei 2.998 km/s, '+nf(T_BRK,0)+' a Magsegel-Bremsung über '+nf(D_BRK,0)+' AE. '
+  + 'Gesamt '+nf(T_TOT,0)+' Jahre auf 4,344 Lichtjahre. '
+  + 'Der Korridor ist schematisch: Die Bahn verläuft 43 Grad unter der Ekliptik, die Planetenbahnen werden nicht durchflogen, sondern nur ihr Abstand von der Sonne passiert. '
+  + 'Helligkeiten aus absoluter Helligkeit 4,83 (Sonne) und 4,38 (α Cen A), Winkeldurchmesser aus 696.000 km und 851.000 km Radius.';
+
+update();
+</script>

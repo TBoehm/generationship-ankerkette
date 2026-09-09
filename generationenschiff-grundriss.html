@@ -1,0 +1,787 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Generationenschiff Ankerkette, Generalplan und Deckpläne</title>
+<style>
+  :root{
+    --hull:#0e1216;
+    --panel:#161c22;
+    --rule:#2b343d;
+    --bone:#e6e2d8;
+    --dim:#98a1a9;
+    --brass:#c9a253;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--hull);color:var(--bone);
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    overflow:hidden;-webkit-font-smoothing:antialiased;
+  }
+  canvas{display:block;touch-action:none}
+  #stage{position:fixed;inset:0}
+
+  .plate{
+    position:fixed;left:0;right:0;top:0;pointer-events:none;
+    padding:10px 14px 14px;padding-top:calc(10px + env(safe-area-inset-top,0px));
+    background:linear-gradient(180deg,rgba(14,18,22,.94),rgba(14,18,22,0));
+  }
+  .plate h1{font-size:15px;font-weight:600;line-height:1.2}
+  .plate h1 span{color:var(--dim);font-weight:400}
+  .keydata{
+    margin-top:5px;display:flex;flex-wrap:wrap;gap:4px 14px;
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:10.5px;color:var(--dim);
+  }
+  .keydata b{color:var(--brass);font-weight:600}
+
+  #sheet{
+    position:fixed;left:0;right:0;bottom:0;max-height:62vh;
+    display:flex;flex-direction:column;
+    background:rgba(22,28,34,.975);border-top:1px solid var(--rule);backdrop-filter:blur(8px);
+  }
+  #grip{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 14px;border-bottom:1px solid var(--rule);cursor:pointer;user-select:none;
+  }
+  #grip .t{font-size:12.5px;font-weight:600;min-width:0}
+  #grip .t em{font-style:normal;color:var(--dim);font-weight:400}
+  #grip .arrow{color:var(--dim);font-size:12px;transition:transform .18s;flex:0 0 auto}
+  #sheet.folded .arrow{transform:rotate(180deg)}
+  #sheet.folded #body{display:none}
+  #body{overflow-y:auto;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));-webkit-overflow-scrolling:touch}
+
+  .crumbs{
+    display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+    padding:9px 14px 0;font-size:11px;color:var(--dim);
+  }
+  .crumbs button{
+    background:none;border:0;color:var(--brass);font:inherit;font-size:11px;
+    cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px;
+  }
+
+  .row{
+    display:flex;align-items:flex-start;gap:10px;width:100%;
+    padding:9px 14px;background:none;border:0;border-bottom:1px solid rgba(43,52,61,.55);
+    color:var(--bone);text-align:left;font:inherit;font-size:12.5px;cursor:pointer;
+  }
+  .row:hover{background:rgba(255,255,255,.035)}
+  .swatch{width:9px;height:9px;border-radius:2px;flex:0 0 auto;margin-top:4px}
+  .row .nm{flex:1;line-height:1.35;min-width:0}
+  .row .nm small{display:block;color:var(--dim);font-size:11px;margin-top:1px}
+  .row .z{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--dim);white-space:nowrap;margin-top:2px}
+
+  #detail{padding:14px}
+  #detail h2{font-size:16px;font-weight:600;line-height:1.25}
+  #detail .role{color:var(--dim);font-size:12px;margin-top:2px}
+  #detail p{font-size:13px;line-height:1.55;margin-top:11px;max-width:64ch}
+  dl.spec{
+    margin-top:13px;display:grid;grid-template-columns:auto 1fr;gap:5px 14px;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;
+    border-top:1px solid var(--rule);padding-top:11px;
+  }
+  dl.spec dt{color:var(--dim)}
+  dl.spec dd{text-align:right}
+  .cta{
+    margin-top:15px;display:flex;gap:8px;flex-wrap:wrap;
+  }
+  .cta button{
+    background:none;border:1px solid var(--rule);color:var(--dim);font:inherit;font-size:12px;
+    padding:7px 13px;border-radius:3px;cursor:pointer;
+  }
+  .cta button:hover{border-color:var(--brass);color:var(--brass)}
+  .cta button.prime{border-color:var(--brass);color:var(--brass)}
+
+  .planwrap{overflow-x:auto;padding:12px 14px 4px;-webkit-overflow-scrolling:touch}
+  .planwrap svg{display:block}
+  .planhint{padding:0 14px 8px;font-size:11px;color:var(--dim)}
+  .plan-room{cursor:pointer}
+  .plan-room rect{stroke:#0e1216;stroke-width:1.1;transition:opacity .12s}
+  .plan-room:hover rect{opacity:.78}
+  .plan-room text{fill:#0e1216;font-size:8px;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;pointer-events:none}
+  .plan-corr{fill:#232b33}
+  .plan-corr-label{fill:#7d868e;font-size:7px;font-family:ui-monospace,Menlo,monospace}
+  .plan-frame{fill:none;stroke:#3c4650;stroke-width:1.4}
+  .plan-dim{fill:#7d868e;font-size:7.5px;font-family:ui-monospace,Menlo,monospace}
+
+  #tools{position:fixed;right:12px;top:calc(70px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:7px}
+  #tools button{
+    background:rgba(22,28,34,.9);border:1px solid var(--rule);color:var(--dim);
+    font:inherit;font-size:11px;padding:7px 10px;border-radius:3px;cursor:pointer;backdrop-filter:blur(6px);
+  }
+  #tools button.on{border-color:var(--brass);color:var(--brass)}
+  button:focus-visible,.row:focus-visible,.plan-room:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
+  @media (min-width:900px){
+    #sheet{left:auto;top:0;bottom:0;width:430px;max-height:none;border-top:0;border-left:1px solid var(--rule)}
+    #grip{padding-top:calc(14px + env(safe-area-inset-top,0px))}
+    #sheet.folded #body{display:block}
+    #grip .arrow{display:none}
+    .plate{right:430px}
+    #tools{right:444px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div id="stage"></div>
+
+<div class="plate">
+  <h1>Ankerkette <span>Generalplan und Deckpläne</span></h1>
+  <div class="keydata">
+    <div>Länge <b>790 m</b></div>
+    <div>Rumpf ⌀ <b>280 m</b></div>
+    <div>Trockenmasse <b>≈539.000 t</b></div>
+    <div>Decks <b>10</b></div>
+    <div>Deckfläche <b>216.800 m²</b></div>
+    <div>Besatzung <b>1.000</b></div>
+  </div>
+</div>
+
+<div id="tools">
+  <button id="btnCut" aria-pressed="false">Mantel aus</button>
+  <button id="btnSpin" aria-pressed="true">Rotation an</button>
+  <button id="btnReset">Ansicht</button>
+</div>
+
+<div id="sheet">
+  <div id="grip" role="button" tabindex="0" aria-expanded="true">
+    <div class="t" id="gripTitle">Sektionsverzeichnis</div>
+    <div class="arrow">▾</div>
+  </div>
+  <div id="body"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================================================================
+   1. DECKS UND RÄUME
+   Sektor = ein Viertel des Ringumfangs, alle vier Sektoren gleich.
+   Raumflächen je Sektor summieren sich auf 26 x Sektorlänge,
+   der Rest der Deckfläche ist der durchgehende Längsgang (4 m).
+   ================================================================ */
+const RA = [125,120,115,110,105];
+const gAt = r => (Math.pow(1.89*2*Math.PI/60,2)*r/9.81);
+
+const DECKS = {
+  ringA: [
+    { name:"Deck 1, Wohnquartiere", r:125, use:"Schlafen und privat",
+      note:"Das äußerste Deck hat die höchste Schwerkraft und ist deshalb den Schlafplätzen vorbehalten, weil Knochen- und Muskelabbau im Liegen am wenigsten kompensiert wird. Die Außenwand dieses Decks ist zugleich Druckhülle und Abschirmwassertank.",
+      rooms:[
+        {n:"Wohneinheiten Block A", a:1300, c:0xc4703c, d:"25 Einheiten à 52 m², ausgelegt auf 3 bis 4 Personen"},
+        {n:"Wohneinheiten Block B", a:1300, c:0xc4703c, d:"25 Einheiten, spiegelgleich zu Block A"},
+        {n:"Wohneinheiten Block C", a:1300, c:0xc4703c, d:"25 Einheiten, umbaubar zu größeren oder kleineren Einheiten"},
+        {n:"Gemeinschaftsküche und Waschhaus", a:420, c:0xd18f5e, d:"Vier Einheiten je Wohngruppe, spart Leitungslänge und Wasserumlauf"},
+        {n:"Treppen- und Aufzugsknoten", a:180, c:0xa08b5a, d:"Zwei Knoten je Sektor, Verbindung über alle fünf Decks bis zur Speiche"},
+        {n:"Sektorschleuse", a:120, c:0x8c9aa4, d:"Druckdichter Übergang zum Nachbarsektor, im Notfall verriegelt"},
+        {n:"Stauraum und Haustechnik", a:485, c:0x6f7a84, d:"Dezentrale Lüftung, Wasserverteilung, persönlicher Stauraum"}
+      ]},
+    { name:"Deck 2, Gemeinschaft", r:120, use:"Essen, Versammlung, Erholung",
+      note:"Das soziale Zentrum des Rings. Die Parkfläche ist kein Luxus: Die Isolationsforschung aus Concordia und Mir zeigt, dass frei zugängliche, offene und begrünte Flächen der wirksamste Einzelfaktor gegen die typischen Überwinterungssyndrome sind.",
+      rooms:[
+        {n:"Kantine und Küche", a:780, c:0xc4703c, d:"Zwei Schichten, direkte Anbindung an den Aufzug zu Ring B"},
+        {n:"Versammlungssaal", a:560, c:0xb2604a, d:"Fasst einen kompletten Sektor, dient auch als Notunterkunft"},
+        {n:"Sport- und Bewegungshalle", a:620, c:0x8f9e5a, d:"Pflichtprogramm bei 0,5 g, Widerstandstraining gegen Knochenabbau"},
+        {n:"Parkfläche mit Bepflanzung", a:1150, c:0x6e8f4e, d:"Offene Grünfläche über die volle Sektorlänge, Blickachse 188 m"},
+        {n:"Bibliothek und Archivzugang", a:300, c:0x7c6fa6, d:"Terminals zum Datenarchiv, physische Referenzbibliothek"},
+        {n:"Hobbywerkstätten", a:380, c:0xb08a4a, d:"Nicht produktionskritisch, bewusst getrennt von der Fertigung"},
+        {n:"Sanitär und Umkleide", a:250, c:0x4f9184, d:""},
+        {n:"Erschließung und Nebenräume", a:861, c:0x6f7a84, d:""}
+      ]},
+    { name:"Deck 3, Arbeit und Versorgung", r:115, use:"Bildung, Medizin, Verwaltung",
+      note:"Bildung ist auf einem Generationenschiff kein Nebenschauplatz, sondern das System, das die Betriebsfähigkeit über 17 Generationen trägt. Fällt die Ausbildungskette für eine einzige kritische Disziplin aus, ist das Wissen unwiederbringlich verloren.",
+      rooms:[
+        {n:"Schule und Ausbildung", a:820, c:0x7c6fa6, d:"Durchgehend vom Kleinkind bis zur Fachqualifikation, 3 bis 4 Träger je Spezialgebiet"},
+        {n:"Krankenstation", a:640, c:0xc25b4e, d:"Operationsbereich, Isolierstation, Zahnmedizin, Geburtshilfe"},
+        {n:"Labore", a:520, c:0x4f9184, d:"Diagnostik, Wasseranalytik, Materialprüfung"},
+        {n:"Leitstand und Verwaltung", a:300, c:0xa08b5a, d:"Zweitleitstand, der Hauptleitstand liegt in der Nabe"},
+        {n:"Feinwerkstätten", a:700, c:0xb08a4a, d:"Instandsetzung von Bordtechnik, getrennt von der Hauptfertigung"},
+        {n:"Lager Verbrauchsgüter", a:780, c:0x6f7a84, d:""},
+        {n:"Erschließung und Nebenräume", a:936, c:0x6f7a84, d:""}
+      ]},
+    { name:"Deck 4, Technik", r:110, use:"Luft, Wasser, Abschirmung",
+      note:"Jeder der vier Sektoren hat eine eigene, vollständige Luft- und Wasseraufbereitung. Ein Sektor kann abgeriegelt werden und die verbleibenden drei versorgen die Besatzung weiter, allerdings dann mit 25 Prozent weniger Reserve.",
+      rooms:[
+        {n:"Luftaufbereitung", a:980, c:0x4f9184, d:"CO₂-Bindung, Spurengasfilter, Sauerstoffpuffer für 30 Tage"},
+        {n:"Wasseraufbereitung", a:820, c:0x4e7a8c, d:"Grau- und Schwarzwasser getrennt, Rückgewinnung über 99 Prozent"},
+        {n:"Abschirmwassertanks", a:1150, c:0x8fa6b2, d:"An der Außenwand, 0,5 m Wasseräquivalent gegen kosmische Strahlung"},
+        {n:"Energieverteilung", a:340, c:0xc25b4e, d:""},
+        {n:"Stoffrückgewinnung", a:620, c:0x6e8f4e, d:"Übergabe der Reststoffe an Ring B"},
+        {n:"Wartungsgänge", a:583, c:0x6f7a84, d:""}
+      ]},
+    { name:"Deck 5, Nabenanbindung", r:105, use:"Lager, Freifläche, Reserve",
+      note:"Das innerste Deck hat die geringste Schwerkraft und die kürzeste Verbindung zur schwerelosen Nabe. Fast ein Drittel der Fläche ist bewusst leer gelassen: Über vier Jahrhunderte ändern sich die Anforderungen, und eine Population, die nicht umbauen kann, sitzt in der Auslegung von 2120 fest.",
+      rooms:[
+        {n:"Speichenkopf mit Aufzug", a:260, c:0xa08b5a, d:"Sechs Speichen je Ring, Fahrzeit zur Nabe rund 90 Sekunden"},
+        {n:"Laufbahn und Freifläche", a:900, c:0x8f9e5a, d:"Durchgehende Bahn über den ganzen Ringumfang, 785 m Runde"},
+        {n:"Langzeitlager", a:1400, c:0x6f7a84, d:"Selten benötigtes Material, bei niedriger Schwerkraft leichter zu bewegen"},
+        {n:"Nabenschleuse", a:180, c:0x8c9aa4, d:""},
+        {n:"Ausbaureserve", a:1548, c:0x39434d, d:"Unausgebaut, für spätere Generationen freigehalten"}
+      ]}
+  ],
+  ringB: [
+    { name:"Deck 1, Getreide", r:125, use:"Grundnahrung",
+      note:"Getreide liefert den Großteil der Kalorien und steht deshalb auf dem Deck mit der höchsten Schwerkraft, weil Wasserführung und Halmstabilität bei niedriger g schlechter funktionieren. Die Terrassen sind mehrlagig gestapelt, die angegebene Fläche ist Grundfläche, nicht Anbaufläche.",
+      rooms:[
+        {n:"Getreideterrassen Nord", a:1500, c:0x6e8f4e, d:"Weizen und Reis im Wechsel, vierlagig gestapelt"},
+        {n:"Getreideterrassen Süd", a:1500, c:0x6e8f4e, d:"Zeitversetzte Aussaat, damit die Ernte übers Jahr verteilt anfällt"},
+        {n:"Bewässerung und Nährlösung", a:560, c:0x4e7a8c, d:"Geschlossener Umlauf, Verluste unter 0,5 Prozent je Zyklus"},
+        {n:"Ernte- und Transportgang", a:700, c:0x6f7a84, d:"Direkter Weg zum Aufzug in Richtung Verarbeitung auf Deck 4"},
+        {n:"Trocknung und Nachreife", a:520, c:0xb08a4a, d:""},
+        {n:"Technikbucht", a:325, c:0x39434d, d:""}
+      ]},
+    { name:"Deck 2, Gemüse und Obst", r:120, use:"Frischkost",
+      note:"Der Insektarium-Raum ist kein Detail am Rand. Ohne mitgeführte Bestäuber müsste jede Obstblüte von Hand bestäubt werden, und die dafür nötige Arbeitszeit übersteigt das, was eine Besatzung von 1.000 Personen dauerhaft aufbringen kann.",
+      rooms:[
+        {n:"Gemüsehydroponik", a:2400, c:0x6e8f4e, d:"Blatt- und Fruchtgemüse, kürzeste Umlaufzeiten an Bord"},
+        {n:"Obstbäume in Bodenkultur", a:1100, c:0x5c7a41, d:"Zwergformen, echtes Substrat statt Nährlösung"},
+        {n:"Insektarium für Bestäubung", a:260, c:0xb08a4a, d:"Bienen und Hummeln, eigene Population mit Kryoreserve"},
+        {n:"Anzucht und Jungpflanzen", a:480, c:0x8f9e5a, d:""},
+        {n:"Erschließung", a:661, c:0x6f7a84, d:""}
+      ]},
+    { name:"Deck 3, Protein", r:115, use:"Eiweißerzeugung",
+      note:"Vier unabhängige Proteinquellen statt einer großen. Der Grund ist nicht Abwechslung im Speiseplan, sondern Ausfallsicherheit: Eine Seuche in der Aquakultur darf nicht die gesamte Eiweißversorgung treffen.",
+      rooms:[
+        {n:"Algenreaktoren", a:1400, c:0x4f9184, d:"Höchste Flächenausbeute an Bord, aber geschmacklich schwer zu integrieren"},
+        {n:"Aquakulturbecken", a:1050, c:0x4e7a8c, d:"Tilapia und Karpfen, gekoppelt an die Nährstoffrückführung"},
+        {n:"Insektenzucht", a:780, c:0xb08a4a, d:"Mehlwürmer und Grillen, Futter aus Ernteresten"},
+        {n:"Zellkulturfleisch", a:600, c:0xc4703c, d:"Energieintensiv, deshalb rationiert"},
+        {n:"Erschließung und Technik", a:866, c:0x6f7a84, d:""}
+      ]},
+    { name:"Deck 4, Verarbeitung und Lager", r:110, use:"Haltbarmachung",
+      note:"Der Lagerbestand ist die eigentliche Sicherheitsreserve der Mission. Ausgelegt ist er auf 18 Monate Vollversorgung, also lang genug, um einen kompletten Ausfall eines Agrarsektors zu überbrücken und die Kulturen neu aufzubauen.",
+      rooms:[
+        {n:"Lebensmittelverarbeitung", a:1050, c:0xb08a4a, d:"Mahlen, Pressen, Fermentieren, Konservieren"},
+        {n:"Kühllager", a:900, c:0x8fa6b2, d:""},
+        {n:"Trockenlager", a:780, c:0x6f7a84, d:"18 Monate Vollversorgung für 1.000 Personen"},
+        {n:"Saatgutvermehrung", a:520, c:0x7c6fa6, d:"Arbeitsbestand, das eigentliche Archiv liegt in der Kryobank"},
+        {n:"Erschließung", a:1243, c:0x6f7a84, d:""}
+      ]},
+    { name:"Deck 5, Kreislauftechnik", r:105, use:"Stoffrückführung",
+      note:"Hier schließt sich der Kreis: Alles, was auf dem Schiff als Abfall anfällt, wird zu Nährstoff für Deck 1 bis 3. Der Schließungsgrad dieses Decks entscheidet darüber, wie viel Masse das Schiff über 437 Jahre unwiederbringlich verliert.",
+      rooms:[
+        {n:"Kompostierung und Bioreaktoren", a:1250, c:0x6e8f4e, d:"Aufschluss organischer Reste aus beiden Ringen"},
+        {n:"Nährlösungsaufbereitung", a:800, c:0x4e7a8c, d:"Stickstoff, Phosphor, Kalium und Spurenelemente rückgewinnen"},
+        {n:"Pilzkulturen in Dunkelzone", a:700, c:0x8c7f6a, d:"Verwerten Substrat, das für Pflanzen nicht mehr taugt"},
+        {n:"Bodenlager und Substrat", a:620, c:0x8c7f6a, d:""},
+        {n:"Erschließung und Nabenschleuse", a:918, c:0x6f7a84, d:""}
+      ]}
+  ]
+};
+
+/* ================================================================
+   2. SEKTIONEN
+   ================================================================ */
+const SECTIONS = [
+  { id:"bugschild", name:"Bugschild", role:"Staubschutz, Flugrichtung voraus", color:0x8fa6b2, z:"z +410 bis +449",
+    text:"Bei 1 Prozent Lichtgeschwindigkeit trägt ein Staubkorn von 0,1 mm die Energie eines Gewehrgeschosses, und das Schiff durchquert 437 Jahre lang interstellares Medium. Der Schild besteht aus einem Block Wassereis mit vorgelagerten Whipple-Lagen, die einen Treffer in eine Plasmawolke auflösen, bevor er den Hauptblock erreicht. Das Eis wird abgetragen und aus den Vorratstanks nachgeführt. Der schwerste Einzelposten des Schiffs und zugleich die unsicherste Zahl im ganzen Entwurf.",
+    spec:{"Frontfläche":"53.100 m²","Eisdicke":"3 m","Whipple-Lagen":"4","Masse":"≈150.000 t"} },
+  { id:"tanks", name:"Vorrats- und Wassertanks", role:"Reserve, Abschirmung, Nachschub", color:0x4e7a8c, z:"z +335 bis +405",
+    text:"Wasser ist dreifach nützlich: Reserve für die geschlossenen Kreisläufe, Strahlungsabschirmung und Nachschub für das abgetragene Bugschild. Die Tanks liegen deshalb vor der Habitatsektion und wirken im Betrieb als zweite Schutzschicht.",
+    spec:{"Volumen":"≈310.000 m³","Startfüllung":"≈240.000 t"} },
+  { id:"mantel", name:"Habitatmantel", role:"nicht rotierende Außenhülle", color:0x3a424b, z:"z +90 bis +330",
+    text:"Der Mantel dreht sich nicht mit. Er trägt die Lager der beiden Ringe und dient als äußere Trefferschale. Über den Schalter rechts oben lässt er sich ausblenden.",
+    spec:{"Länge":"240 m","Durchmesser":"280 m","Rotation":"keine"} },
+  { id:"ringA", name:"Ring A, Wohnen und Gemeinschaft", role:"5 Decks, 4 Sektoren", color:0xc4703c, z:"z ≈ +150", ring:true,
+    text:"Ein Ringkörper mit 125 m Außenradius, 30 m axialer Breite und 25 m radialer Höhe, aufgeteilt in fünf Decks à 5 m. Bei 1,89 Umdrehungen pro Minute liegen am äußersten Deck 0,50 g an, am innersten 0,42 g. Vier druckdichte Sektoren mit je eigener Luft- und Wasseraufbereitung sorgen dafür, dass ein Brand oder ein Leck nie das ganze Wohnvolumen trifft.",
+    spec:{"Außenradius":"125 m","Drehzahl":"1,89 min⁻¹","Schwerkraft":"0,50 bis 0,42 g","Decks":"5","Sektoren":"4","Deckfläche":"108.400 m²","Volumen":"589.000 m³"} },
+  { id:"ringB", name:"Ring B, Landwirtschaft", role:"5 Decks, gegenläufig", color:0x6e8f4e, z:"z ≈ +270", ring:true,
+    text:"Baugleich mit Ring A, dreht aber gegenläufig, sodass sich die Drehimpulse aufheben und das Schiff ohne Kreiselwiderstand Kurs halten kann. Fünf Decks decken Getreide, Frischkost, Protein, Verarbeitung und Stoffrückführung ab. Pro Person stehen 108 m² Grundfläche zur Verfügung, durch mehrlagige Terrassen ergibt das etwa das Zwei- bis Dreifache an tatsächlicher Anbaufläche.",
+    spec:{"Grundfläche":"108.400 m²","je Person":"108 m²","Drehsinn":"gegen Ring A","Beleuchtung":"LED-Vollspektrum","Proteinquellen":"4, unabhängig"} },
+  { id:"achse", name:"Zentralachse und Naben", role:"Verbindung, Schwerelosigkeit, Sturmbunker", color:0xa08b5a, z:"z -300 bis +450",
+    text:"Die durchgehende Achse verbindet alle Sektionen und nimmt die Drehlager der Ringe auf. Aufzüge in den sechs Speichen je Ring führen von der Peripherie in die schwerelose Nabe. Der am stärksten abgeschirmte Abschnitt dient als Sturmbunker bei Strahlungsereignissen.",
+    spec:{"Durchmesser":"28 m","Länge":"750 m","Schwerkraft":"0 g","Speichen je Ring":"6"} },
+  { id:"kryo", name:"Kryobank und Genarchiv", role:"genetische Reserve", color:0x7c6fa6, z:"z +48 bis +83",
+    text:"Der Grund, warum 1.000 Menschen genügen. Eingelagert sind Gameten und Embryonen von mehreren tausend Spendern, dazu Saatgut, Mikrobenkulturen und tierische Genetik. Damit hängt die genetische Vielfalt nicht mehr an der Größe der lebenden Population, sondern an der Zuverlässigkeit der Kühlung. Der Bestand liegt dreifach redundant in getrennten Abschnitten.",
+    spec:{"Spender":"3.000 bis 5.000","Lagertemperatur":"-196 °C","Redundanz":"3 Depots","Volumen":"≈30.000 m³"} },
+  { id:"werkstatt", name:"Werkstatt und Fertigung", role:"Ersatzteile, Rohstofflager", color:0xb08a4a, z:"z -15 bis +45",
+    text:"Über vier Jahrhunderte kann nichts nachgeliefert werden, jedes Bauteil muss an Bord reproduzierbar sein. Der begrenzende Faktor ist nicht das Werkzeug, sondern die Fertigungskette: Halbleiter in der nötigen Güte selbst herzustellen ist die härteste Anforderung des ganzen Schiffs.",
+    spec:{"Volumen":"≈100.000 m³","Rohstoffvorrat":"≈30.000 t","Kritisch":"Halbleiterfertigung"} },
+  { id:"leben", name:"Lebenserhaltung und Recycling", role:"Rückfallebene hinter der Biosphäre", color:0x4f9184, z:"z -80 bis -20",
+    text:"Physikalisch-chemische Aufbereitung als Rückfallebene hinter Ring B. Fällt die Landwirtschaft aus, hält diese Sektion Luft und Wasser allein aufrecht, bis der Ring wieder anläuft. Bei 99 Prozent Rückgewinnung geht pro Jahrhundert immer noch ein messbarer Anteil der Gesamtmasse verloren.",
+    spec:{"Auslegung":"1.500 Personen","Ziel-Schließungsgrad":">99,5 %","Autark":"180 Tage"} },
+  { id:"reaktor", name:"Reaktorsektion", role:"Bordenergie", color:0xc25b4e, z:"z -155 bis -85",
+    text:"Zwei getrennte Reaktoren im Wechselbetrieb. Der Dauerbedarf wird von der Pflanzenbeleuchtung in Ring B dominiert, nicht vom Wohnbereich.",
+    spec:{"Dauerleistung":"≈300 MW","Einheiten":"2, redundant","Hauptverbraucher":"Anbaubeleuchtung"} },
+  { id:"radiator", name:"Radiatoren", role:"Wärmeabgabe", color:0x6b7480, z:"z -155 bis -85",
+    text:"Im Vakuum lässt sich Wärme nur abstrahlen. Die Flächen liegen im Schatten der Bugstruktur und sind segmentiert, damit ein Leck nicht das ganze Kühlsystem entleert.",
+    spec:{"Fläche":"≈24.000 m²","Temperatur":"≈450 K","Segmente":"8"} },
+  { id:"schatten", name:"Schattenschild", role:"Trennung Reaktor, Wohnbereich", color:0x5c6570, z:"z ≈ -160",
+    text:"Statt den Reaktor komplett zu ummanteln, wird nur der Kegel abgeschirmt, in dem das Habitat liegt. Das spart erheblich Masse, verbietet aber jeden dauerhaften Aufenthalt außerhalb dieses Schattens im hinteren Schiffsdrittel.",
+    spec:{"Durchmesser":"124 m","Dicke":"6 m"} },
+  { id:"magazin", name:"Treibstoffmagazin", role:"Puls-Ladungen", color:0x7a8290, z:"z -260 bis -170",
+    text:"Vorrat und Zuführung der Fusions-Puls-Ladungen. Der Antrieb arbeitet nur in der Beschleunigungsphase der ersten Jahrzehnte, danach dient das Magazin als Lager.",
+    spec:{"Ladungen":"mehrere Millionen","Nutzung":"nur Startphase"} },
+  { id:"antrieb", name:"Antrieb und Pusherplatte", role:"Beschleunigung", color:0x9a5a46, z:"z -260 bis -320",
+    text:"Fusions-Puls-Antrieb nach dem Orion-Prinzip. Bei 1.000 km/s Austrittsgeschwindigkeit braucht allein die Beschleunigung auf 1 Prozent c ein Massenverhältnis von 20, also rund 10 Millionen Tonnen Treibstoff. Mit dem gleichen Antrieb auch zu bremsen verlangte ein Verhältnis von 400 und ist ausgeschlossen.",
+    spec:{"Prinzip":"Fusions-Puls (Orion)","Plattendurchmesser":"210 m","Austrittsgeschw.":"≈1.000 km/s","Massenverhältnis":"20","Treibstoff":"≈10 Mio t"} },
+  { id:"magsegel", name:"Magsegel", role:"Bremsen am Ziel", color:0x9fb8c4, z:"z ≈ -335",
+    text:"Eine supraleitende Schleife erzeugt ein Magnetfeld, das gegen das interstellare Plasma arbeitet und daraus Bremskraft gewinnt, ohne Treibstoff mitzuführen. Ohne dieses Bauteil ist die Mission rechnerisch nicht durchführbar, gleichzeitig ist es das am wenigsten erprobte System an Bord. Das Konzept stammt von Zubrin und Andrews (1989) und wurde nie geflogen.",
+    spec:{"Durchmesser":"380 m","Treibstoff":"keiner","Erprobungsstand":"nur Theorie"} }
+];
+
+/* ================================================================
+   3. SZENE
+   ================================================================ */
+const stage = document.getElementById('stage');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0e1216);
+
+const camera = new THREE.PerspectiveCamera(42, 1, 1, 9000);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+stage.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0x5c6c7a, 0.8));
+const key = new THREE.DirectionalLight(0xfff0d8, 1.0); key.position.set(600,500,700); scene.add(key);
+const fill = new THREE.DirectionalLight(0x6d8ea8, 0.5); fill.position.set(-700,-300,-500); scene.add(fill);
+const glowA = new THREE.PointLight(0xffd9a8, 1.1, 420); glowA.position.set(0,0,150); scene.add(glowA);
+const glowB = new THREE.PointLight(0xcfffb0, 1.1, 420); glowB.position.set(0,0,270); scene.add(glowB);
+const rimL = new THREE.PointLight(0xff7a45, 1.5, 900); rimL.position.set(0,0,-320); scene.add(rimL);
+
+(function stars(){
+  const n=2400, pos=new Float32Array(n*3);
+  for(let i=0;i<n;i++){
+    const r=2800+Math.random()*2000, t=Math.random()*Math.PI*2, p=Math.acos(2*Math.random()-1);
+    pos[i*3]=r*Math.sin(p)*Math.cos(t); pos[i*3+1]=r*Math.sin(p)*Math.sin(t); pos[i*3+2]=r*Math.cos(p);
+  }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xbcc8d2,size:3,sizeAttenuation:false,transparent:true,opacity:.5})));
+})();
+
+const ship = new THREE.Group(); scene.add(ship);
+const groups = {}; const pickable = [];
+SECTIONS.forEach(s=>{ const g=new THREE.Group(); groups[s.id]=g; ship.add(g); });
+
+function mat(color, o){
+  o = o||{};
+  const m = new THREE.MeshStandardMaterial({
+    color:color,
+    metalness:o.metal!==undefined?o.metal:0.55,
+    roughness:o.rough!==undefined?o.rough:0.62,
+    transparent:o.opacity!==undefined,
+    opacity:o.opacity!==undefined?o.opacity:1,
+    side:o.side||THREE.FrontSide,
+    emissive:new THREE.Color(0x000000)
+  });
+  m.userData.base = new THREE.Color(color);
+  m.userData.baseOp = m.opacity;
+  return m;
+}
+function add(id, geo, material, x,y,z, rx,ry,rz, extra){
+  const m = new THREE.Mesh(geo, material);
+  m.position.set(x||0,y||0,z||0);
+  m.rotation.set(rx||0,ry||0,rz||0);
+  m.userData = Object.assign({id:id}, extra||{});
+  groups[id].add(m); pickable.push(m);
+  return m;
+}
+const HZ = Math.PI/2;
+
+/* --- Bugschild --- */
+add('bugschild', new THREE.CylinderGeometry(112,130,14,64), mat(0x8fa6b2,{metal:.2,rough:.85}), 0,0,442, HZ);
+for(let i=0;i<4;i++)
+  add('bugschild', new THREE.CylinderGeometry(120-i*3,120-i*3,1.2,56), mat(0x8fa6b2,{metal:.6,rough:.4,opacity:.42}), 0,0,432-i*7, HZ);
+
+/* --- Tanks --- */
+add('tanks', new THREE.CylinderGeometry(120,120,70,48), mat(0x4e7a8c,{metal:.5,rough:.5}), 0,0,370, HZ);
+for(let i=0;i<8;i++){ const a=i/8*Math.PI*2;
+  add('tanks', new THREE.CylinderGeometry(15,15,72,16), mat(0x3f6675,{metal:.6,rough:.45}), Math.cos(a)*100, Math.sin(a)*100, 370, HZ); }
+
+/* --- Mantel --- */
+add('mantel', new THREE.CylinderGeometry(140,140,240,64,1,true), mat(0x3a424b,{metal:.7,rough:.45,opacity:.13,side:THREE.DoubleSide}), 0,0,210, HZ);
+for(let i=0;i<7;i++)
+  add('mantel', new THREE.TorusGeometry(140,1.6,8,64), mat(0x59646f,{metal:.8,rough:.35}), 0,0,95+i*38);
+
+/* --- Ringe mit Decks --- */
+const CUT_START = -Math.PI*0.30, CUT_LEN = Math.PI*1.5; // 90 Grad offen für die Schnittansicht
+function buildRing(id, baseColor, zc){
+  const decks = DECKS[id];
+  // Außenwand und Innenwand
+  add(id, new THREE.CylinderGeometry(125,125,30,72,1,true,CUT_START,CUT_LEN),
+      mat(baseColor,{metal:.5,rough:.55,side:THREE.DoubleSide}), 0,0,zc, HZ, 0,0, {deck:0});
+  add(id, new THREE.CylinderGeometry(100,100,30,72,1,true,CUT_START,CUT_LEN),
+      mat(0x39434d,{metal:.6,rough:.5,side:THREE.DoubleSide}), 0,0,zc, HZ);
+  // Stirnwände
+  [-15,15].forEach(dz=>{
+    const rg = new THREE.RingGeometry(100,125,72,1,CUT_START,CUT_LEN);
+    add(id, rg, mat(0x2f3841,{metal:.6,rough:.55,side:THREE.DoubleSide}), 0,0,zc+dz);
+  });
+  // Deckböden
+  decks.forEach((d,di)=>{
+    if(di===0) return; // Deck 1 liegt auf der Außenwand
+    add(id, new THREE.CylinderGeometry(d.r,d.r,30,72,1,true,CUT_START,CUT_LEN),
+        mat(0x505b66,{metal:.5,rough:.6,side:THREE.DoubleSide}), 0,0,zc, HZ, 0,0, {deck:di});
+  });
+  // Sektorschotte
+  for(let s=0;s<4;s++){
+    const a = s*Math.PI/2 + CUT_START;
+    const w = new THREE.Mesh(new THREE.BoxGeometry(25,1.5,30), mat(0x8b7f66,{metal:.85,rough:.35}));
+    w.position.set(Math.cos(a)*112.5, Math.sin(a)*112.5, zc);
+    w.rotation.z = a;
+    w.userData = {id:id};
+    groups[id].add(w); pickable.push(w);
+  }
+  // Räume als Blöcke auf jedem Deck, drei sichtbare Sektoren
+  decks.forEach((d,di)=>{
+    const total = d.rooms.reduce((s,r)=>s+r.a,0);
+    for(let s=0;s<3;s++){
+      let a0 = CUT_START + s*Math.PI/2 + 0.035;
+      const span = Math.PI/2 - 0.07;
+      d.rooms.forEach((rm,ri)=>{
+        const w = span * (rm.a/total);
+        const ac = a0 + w/2;
+        const rad = d.r - 2.6;
+        const chord = 2*rad*Math.sin(Math.max(w/2-0.006,0.004));
+        const box = new THREE.Mesh(new THREE.BoxGeometry(chord, 3.6, 23), mat(rm.c,{metal:.4,rough:.7}));
+        box.position.set(Math.cos(ac)*rad, Math.sin(ac)*rad, zc);
+        box.rotation.z = ac + Math.PI/2;
+        box.userData = {id:id, deck:di, room:ri};
+        groups[id].add(box); pickable.push(box);
+        a0 += w;
+      });
+    }
+  });
+  // Speichen
+  for(let i=0;i<6;i++){
+    const a=i/6*Math.PI*2;
+    const sp = new THREE.Mesh(new THREE.BoxGeometry(4.5,88,7), mat(0x8b7f66,{metal:.85,rough:.35}));
+    sp.position.set(Math.cos(a)*57, Math.sin(a)*57, zc);
+    sp.rotation.z = a - Math.PI/2;
+    sp.userData = {id:id};
+    groups[id].add(sp); pickable.push(sp);
+  }
+  add(id, new THREE.CylinderGeometry(20,20,34,24), mat(baseColor,{metal:.7,rough:.4}), 0,0,zc, HZ);
+}
+buildRing('ringA', 0xc4703c, 150);
+buildRing('ringB', 0x6e8f4e, 270);
+
+/* --- Achse --- */
+add('achse', new THREE.CylinderGeometry(14,14,750,28), mat(0xa08b5a,{metal:.8,rough:.35}), 0,0,75, HZ);
+for(let i=0;i<12;i++)
+  add('achse', new THREE.TorusGeometry(15.5,1.3,8,24), mat(0x776748,{metal:.9,rough:.3}), 0,0,-290+i*62);
+
+/* --- Kryobank --- */
+add('kryo', new THREE.CylinderGeometry(23,23,35,32), mat(0x7c6fa6,{metal:.55,rough:.45}), 0,0,65, HZ);
+for(let i=0;i<3;i++){ const a=i/3*Math.PI*2+0.5;
+  add('kryo', new THREE.BoxGeometry(9,9,30), mat(0x5f5580,{metal:.7,rough:.4}), Math.cos(a)*29, Math.sin(a)*29, 65); }
+
+/* --- Werkstatt --- */
+add('werkstatt', new THREE.CylinderGeometry(42,42,60,40), mat(0xb08a4a,{metal:.6,rough:.5}), 0,0,15, HZ);
+add('werkstatt', new THREE.TorusGeometry(42.5,1.6,8,44), mat(0x8a6c39,{metal:.9,rough:.3}), 0,0,15);
+
+/* --- Lebenserhaltung --- */
+add('leben', new THREE.CylinderGeometry(46,46,60,40), mat(0x4f9184,{metal:.55,rough:.5}), 0,0,-50, HZ);
+for(let i=0;i<6;i++){ const a=i/6*Math.PI*2;
+  add('leben', new THREE.CylinderGeometry(7,7,58,14), mat(0x3d7268,{metal:.7,rough:.4}), Math.cos(a)*40, Math.sin(a)*40, -50, HZ); }
+
+/* --- Reaktor --- */
+add('reaktor', new THREE.CylinderGeometry(26,26,70,32), mat(0xc25b4e,{metal:.65,rough:.4}), 0,0,-120, HZ);
+add('reaktor', new THREE.CylinderGeometry(30,30,8,32), mat(0x8f3f36,{metal:.85,rough:.3}), 0,0,-90, HZ);
+add('reaktor', new THREE.CylinderGeometry(30,30,8,32), mat(0x8f3f36,{metal:.85,rough:.3}), 0,0,-150, HZ);
+
+/* --- Radiatoren --- */
+for(let i=0;i<4;i++){
+  const a=i/4*Math.PI*2 + Math.PI/4;
+  const p = add('radiator', new THREE.BoxGeometry(150,1.6,66), mat(0x6b7480,{metal:.4,rough:.75,side:THREE.DoubleSide}), Math.cos(a)*102, Math.sin(a)*102, -120);
+  p.rotation.z = a;
+}
+
+/* --- Schattenschild --- */
+add('schatten', new THREE.CylinderGeometry(62,62,6,48), mat(0x5c6570,{metal:.3,rough:.85}), 0,0,-160, HZ);
+
+/* --- Magazin --- */
+add('magazin', new THREE.CylinderGeometry(36,36,90,32), mat(0x7a8290,{metal:.7,rough:.4}), 0,0,-215, HZ);
+for(let i=0;i<4;i++){ const a=i/4*Math.PI*2;
+  add('magazin', new THREE.BoxGeometry(10,10,86), mat(0x5f6773,{metal:.85,rough:.3}), Math.cos(a)*30, Math.sin(a)*30, -215); }
+
+/* --- Antrieb --- */
+add('antrieb', new THREE.CylinderGeometry(105,60,12,48), mat(0x9a5a46,{metal:.75,rough:.35}), 0,0,-312, HZ);
+for(let i=0;i<8;i++){ const a=i/8*Math.PI*2;
+  add('antrieb', new THREE.CylinderGeometry(5,5,48,12), mat(0x77463a,{metal:.85,rough:.3}), Math.cos(a)*34, Math.sin(a)*34, -282, HZ); }
+add('antrieb', new THREE.CylinderGeometry(40,40,20,32), mat(0x77463a,{metal:.8,rough:.35}), 0,0,-268, HZ);
+
+/* --- Magsegel --- */
+add('magsegel', new THREE.TorusGeometry(190,2.2,10,96), mat(0x9fb8c4,{metal:.9,rough:.2}), 0,0,-335);
+for(let i=0;i<6;i++){ const a=i/6*Math.PI*2;
+  const st = add('magsegel', new THREE.BoxGeometry(2.4,176,2.4), mat(0x7d949e,{metal:.85,rough:.3}), Math.cos(a)*95, Math.sin(a)*95, -335);
+  st.rotation.z = a - Math.PI/2; }
+
+/* ================================================================
+   4. KAMERA
+   ================================================================ */
+const target = new THREE.Vector3(0,0,60);
+const goal = {tx:0,ty:0,tz:60,dist:1250};
+let theta=0.85, phi=1.15, dist=1250;
+
+function place(){
+  camera.position.set(
+    target.x + dist*Math.sin(phi)*Math.cos(theta),
+    target.y + dist*Math.cos(phi),
+    target.z + dist*Math.sin(phi)*Math.sin(theta));
+  camera.lookAt(target);
+}
+function flyTo(tz, d){ goal.tz=tz; goal.dist=d; }
+function resize(){ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); }
+addEventListener('resize',resize); resize(); place();
+
+let dragging=false, moved=0, lx=0, ly=0, pinch=0;
+const el = renderer.domElement;
+el.addEventListener('pointerdown', e=>{ dragging=true; moved=0; lx=e.clientX; ly=e.clientY; el.setPointerCapture(e.pointerId); });
+el.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  const dx=e.clientX-lx, dy=e.clientY-ly; lx=e.clientX; ly=e.clientY;
+  moved += Math.abs(dx)+Math.abs(dy);
+  theta -= dx*0.005;
+  phi = Math.max(0.12, Math.min(Math.PI-0.12, phi - dy*0.005));
+});
+el.addEventListener('pointerup', e=>{ dragging=false; if(moved<7) pick(e.clientX,e.clientY); });
+el.addEventListener('pointercancel', ()=>{ dragging=false; });
+el.addEventListener('wheel', e=>{ e.preventDefault(); goal.dist = Math.max(180, Math.min(3000, goal.dist*(1+Math.sign(e.deltaY)*0.12))); }, {passive:false});
+el.addEventListener('touchmove', e=>{
+  if(e.touches.length===2){
+    const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    if(pinch) goal.dist = Math.max(180, Math.min(3000, goal.dist*(pinch/d)));
+    pinch=d; dragging=false;
+  }
+},{passive:true});
+el.addEventListener('touchend', ()=>{ pinch=0; });
+
+/* ================================================================
+   5. AUSWAHLZUSTAND
+   ================================================================ */
+let sel = {sec:null, deck:null, room:null};
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+
+function pick(cx,cy){
+  ndc.x=(cx/innerWidth)*2-1; ndc.y=-(cy/innerHeight)*2+1;
+  ray.setFromCamera(ndc,camera);
+  const hits = ray.intersectObjects(pickable,false).filter(h=>h.object.visible && h.object.material.opacity>0.06);
+  if(!hits.length){ setSel(null,null,null); return; }
+  const u = hits[0].object.userData;
+  setSel(u.id, u.deck!==undefined?u.deck:null, u.room!==undefined?u.room:null);
+}
+
+function applyHighlight(){
+  pickable.forEach(m=>{
+    const u = m.userData, mt = m.material;
+    let lit = true;
+    if(sel.sec){
+      lit = (u.id === sel.sec);
+      if(lit && sel.deck!==null && u.deck!==undefined) lit = (u.deck === sel.deck);
+    }
+    mt.color.copy(mt.userData.base);
+    if(!lit) mt.color.lerp(new THREE.Color(0x252c33), 0.76);
+    const hot = sel.room!==null && u.id===sel.sec && u.deck===sel.deck && u.room===sel.room;
+    mt.emissive.setHex(hot ? 0x3a2a10 : 0x000000);
+    if(mt.userData.baseOp < 1) mt.opacity = lit ? mt.userData.baseOp : mt.userData.baseOp*0.35;
+  });
+}
+
+function setSel(sec, deck, room){
+  sel = {sec:sec, deck:deck===undefined?null:deck, room:room===undefined?null:room};
+  applyHighlight();
+  render();
+  if(sec==='ringA') flyTo(150, sel.deck!==null?330:600);
+  else if(sec==='ringB') flyTo(270, sel.deck!==null?330:600);
+  else if(sec) flyTo(zOf(sec), 900);
+  else flyTo(60, 1250);
+  sheet.classList.remove('folded');
+  grip.setAttribute('aria-expanded','true');
+}
+function zOf(id){
+  const g = groups[id];
+  const b = new THREE.Box3().setFromObject(g);
+  return (b.min.z+b.max.z)/2;
+}
+
+/* ================================================================
+   6. OBERFLÄCHE
+   ================================================================ */
+const body = document.getElementById('body');
+const sheet = document.getElementById('sheet');
+const grip = document.getElementById('grip');
+const gripTitle = document.getElementById('gripTitle');
+const hex = c => '#'+c.toString(16).padStart(6,'0');
+const fmt = n => n.toLocaleString('de-DE');
+
+function crumbs(items){
+  let h = '<div class="crumbs">';
+  items.forEach((it,i)=>{
+    if(i) h += '<span>›</span>';
+    if(it.go) h += '<button data-crumb="'+it.go+'">'+it.t+'</button>';
+    else h += '<span>'+it.t+'</span>';
+  });
+  return h + '</div>';
+}
+function wireCrumbs(){
+  body.querySelectorAll('[data-crumb]').forEach(b=>{
+    b.onclick = ()=>{
+      const v = b.dataset.crumb;
+      if(v==='root') setSel(null,null,null);
+      else if(v==='sec') setSel(sel.sec,null,null);
+      else if(v==='deck') setSel(sel.sec,sel.deck,null);
+    };
+  });
+}
+
+function viewIndex(){
+  gripTitle.innerHTML = 'Sektionsverzeichnis <em>'+SECTIONS.length+' Abschnitte</em>';
+  let h = '';
+  SECTIONS.forEach(s=>{
+    h += '<button class="row" data-sec="'+s.id+'">'
+      + '<span class="swatch" style="background:'+hex(s.color)+'"></span>'
+      + '<span class="nm">'+s.name+'<small>'+s.role+'</small></span>'
+      + '<span class="z">'+s.z+'</span></button>';
+  });
+  body.innerHTML = h;
+  body.querySelectorAll('[data-sec]').forEach(b=> b.onclick=()=> setSel(b.dataset.sec,null,null));
+}
+
+function viewSection(s){
+  gripTitle.innerHTML = s.name+' <em>Sektionsdaten</em>';
+  let dl=''; for(const k in s.spec) dl += '<dt>'+k+'</dt><dd>'+s.spec[k]+'</dd>';
+  let h = crumbs([{t:'Verzeichnis',go:'root'},{t:s.name}]);
+  h += '<div id="detail"><h2>'+s.name+'</h2><div class="role">'+s.role+', '+s.z+'</div>'
+     + '<p>'+s.text+'</p><dl class="spec">'+dl+'</dl></div>';
+  if(s.ring){
+    h += '<div style="padding:0 14px 6px;font-size:11px;color:var(--dim)">Decks von außen nach innen, Schwerkraft nimmt nach innen ab</div>';
+    DECKS[s.id].forEach((d,i)=>{
+      const area = 2*Math.PI*d.r/4*30;
+      h += '<button class="row" data-deck="'+i+'">'
+        + '<span class="swatch" style="background:'+hex(d.rooms[0].c)+'"></span>'
+        + '<span class="nm">'+d.name+'<small>'+d.use+', '+d.rooms.length+' Raumtypen</small></span>'
+        + '<span class="z">r '+d.r+' m<br>'+gAt(d.r).toFixed(2).replace('.',',')+' g</span></button>';
+    });
+  }
+  body.innerHTML = h;
+  wireCrumbs();
+  body.querySelectorAll('[data-deck]').forEach(b=> b.onclick=()=> setSel(sel.sec, +b.dataset.deck, null));
+}
+
+function viewDeck(s, d, di){
+  gripTitle.innerHTML = d.name+' <em>Deckplan</em>';
+  const L = 2*Math.PI*d.r/4;           // Sektorlänge in m
+  const sectorArea = L*30;
+  const SC = 5;                         // Pixel pro Meter
+  const roomTotal = d.rooms.reduce((a,r)=>a+r.a,0);
+
+  // Aufteilung: zwei Raumreihen à 13 m, dazwischen ein Längsgang von 4 m
+  const rowH = 13;
+  let xTop=0, xBot=0;
+  const placed = [];
+  d.rooms.forEach((rm,ri)=>{
+    const w = rm.a/rowH;
+    const top = xTop <= xBot;
+    placed.push({rm:rm, ri:ri, x:top?xTop:xBot, y:top?0:17, w:w});
+    if(top) xTop += w; else xBot += w;
+  });
+
+  const W = Math.max(xTop,xBot,L), H = 30;
+  let svg = '<svg width="'+(W*SC)+'" height="'+(H*SC+18)+'" viewBox="0 0 '+W+' '+(H+3.6)+'" xmlns="http://www.w3.org/2000/svg">';
+  svg += '<rect class="plan-corr" x="0" y="13" width="'+W+'" height="4"/>';
+  svg += '<text class="plan-corr-label" x="3" y="15.9">Längsgang, 4 m breit, durchgehend über den ganzen Ring</text>';
+  placed.forEach(p=>{
+    svg += '<g class="plan-room" data-room="'+p.ri+'" tabindex="0">'
+        + '<rect x="'+p.x.toFixed(2)+'" y="'+p.y+'" width="'+p.w.toFixed(2)+'" height="'+rowH+'" fill="'+hex(p.rm.c)+'"/>';
+    if(p.w*SC > 58){
+      const words = p.rm.n.split(' ');
+      let l1=words.shift(), l2=words.join(' ');
+      while(l2.length>0 && l1.length<13 && words.length===0) break;
+      svg += '<text x="'+(p.x+1.4).toFixed(2)+'" y="'+(p.y+4.6)+'">'+l1+'</text>';
+      if(l2) svg += '<text x="'+(p.x+1.4).toFixed(2)+'" y="'+(p.y+8.2)+'">'+l2+'</text>';
+      svg += '<text x="'+(p.x+1.4).toFixed(2)+'" y="'+(p.y+11.6)+'" opacity=".72">'+fmt(p.rm.a)+' m²</text>';
+    }
+    svg += '</g>';
+  });
+  svg += '<rect class="plan-frame" x="0" y="0" width="'+W.toFixed(2)+'" height="'+H+'"/>';
+  svg += '<text class="plan-dim" x="0" y="'+(H+3)+'">◀ '+L.toFixed(0)+' m Sektorlänge ▶   |   30 m Deckbreite   |   '+fmt(Math.round(sectorArea))+' m² je Sektor</text>';
+  svg += '</svg>';
+
+  let h = crumbs([{t:'Verzeichnis',go:'root'},{t:s.name,go:'sec'},{t:d.name.split(',')[0]}]);
+  h += '<div id="detail"><h2>'+d.name+'</h2><div class="role">'+d.use+', Radius '+d.r+' m, '+gAt(d.r).toFixed(2).replace('.',',')+' g</div>'
+     + '<p>'+d.note+'</p></div>';
+  h += '<div class="planwrap">'+svg+'</div>';
+  h += '<div class="planhint">Ausgerollter Plan eines von vier baugleichen Sektoren. Tippe einen Raum an, seitlich scrollen für die volle Länge.</div>';
+  d.rooms.forEach((rm,ri)=>{
+    h += '<button class="row" data-room="'+ri+'">'
+      + '<span class="swatch" style="background:'+hex(rm.c)+'"></span>'
+      + '<span class="nm">'+rm.n+(rm.d?'<small>'+rm.d+'</small>':'')+'</span>'
+      + '<span class="z">'+fmt(rm.a)+' m²</span></button>';
+  });
+  body.innerHTML = h;
+  wireCrumbs();
+  body.querySelectorAll('[data-room]').forEach(b=>{
+    const go = ()=> setSel(sel.sec, di, +b.dataset.room);
+    b.onclick = go;
+    b.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } };
+  });
+}
+
+function viewRoom(s, d, di, rm, ri){
+  gripTitle.innerHTML = rm.n+' <em>Raumdaten</em>';
+  const perSector = rm.a, all = rm.a*4;
+  const share = (rm.a/(2*Math.PI*d.r/4*30)*100).toFixed(1).replace('.',',');
+  let h = crumbs([{t:'Verzeichnis',go:'root'},{t:s.name,go:'sec'},{t:d.name.split(',')[0],go:'deck'},{t:rm.n}]);
+  h += '<div id="detail"><h2>'+rm.n+'</h2><div class="role">'+d.name+', '+s.name.split(',')[0]+'</div>';
+  if(rm.d) h += '<p>'+rm.d+'</p>';
+  h += '<dl class="spec">'
+     + '<dt>Fläche je Sektor</dt><dd>'+fmt(perSector)+' m²</dd>'
+     + '<dt>Fläche im Ring</dt><dd>'+fmt(all)+' m²</dd>'
+     + '<dt>Anteil am Deck</dt><dd>'+share+' %</dd>'
+     + '<dt>Deckhöhe</dt><dd>5 m</dd>'
+     + '<dt>Schwerkraft</dt><dd>'+gAt(d.r).toFixed(2).replace('.',',')+' g</dd>'
+     + '<dt>Vorkommen</dt><dd>4 x, je Sektor</dd>'
+     + '</dl>'
+     + '<div class="cta"><button data-crumb="deck" class="prime">Zurück zum Deckplan</button></div></div>';
+  body.innerHTML = h;
+  wireCrumbs();
+}
+
+function render(){
+  const s = SECTIONS.find(x=>x.id===sel.sec);
+  if(!s){ viewIndex(); return; }
+  if(sel.deck===null || !s.ring){ viewSection(s); return; }
+  const d = DECKS[s.id][sel.deck];
+  if(sel.room===null){ viewDeck(s,d,sel.deck); return; }
+  viewRoom(s,d,sel.deck,d.rooms[sel.room],sel.room);
+}
+
+grip.onclick = ()=>{ const f=sheet.classList.toggle('folded'); grip.setAttribute('aria-expanded',String(!f)); };
+grip.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); grip.click(); } };
+
+const btnCut = document.getElementById('btnCut');
+let cut=false;
+btnCut.onclick = ()=>{
+  cut=!cut;
+  groups.mantel.visible=!cut; groups.tanks.visible=!cut;
+  btnCut.textContent = cut?'Mantel an':'Mantel aus';
+  btnCut.classList.toggle('on',cut);
+  btnCut.setAttribute('aria-pressed',String(cut));
+};
+const btnSpin = document.getElementById('btnSpin');
+let spin=true; btnSpin.classList.add('on');
+btnSpin.onclick = ()=>{
+  spin=!spin;
+  btnSpin.textContent = spin?'Rotation an':'Rotation aus';
+  btnSpin.classList.toggle('on',spin);
+  btnSpin.setAttribute('aria-pressed',String(spin));
+};
+document.getElementById('btnReset').onclick = ()=>{ theta=0.85; phi=1.15; setSel(null,null,null); };
+
+render(); applyHighlight();
+
+/* ================================================================
+   7. LAUF
+   ================================================================ */
+const slow = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function loop(){
+  requestAnimationFrame(loop);
+  if(spin && !slow && sel.deck===null){
+    groups.ringA.rotation.z += 0.0022;
+    groups.ringB.rotation.z -= 0.0022;
+  }
+  target.z += (goal.tz - target.z)*0.08;
+  dist += (goal.dist - dist)*0.08;
+  place();
+  renderer.render(scene,camera);
+}
+loop();
+</script>
