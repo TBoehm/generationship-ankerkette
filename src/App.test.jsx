@@ -5,7 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 import App from './App.jsx';
 import './infrastructure/i18n/index.js';
 import de from './locales/de.json';
-import { APP_CONFIG } from './infrastructure/config/appConfig.js';
 
 function renderAt(path) {
   return render(
@@ -33,15 +32,6 @@ describe('App', () => {
     renderAt('/');
     await userEvent.click(screen.getByRole('link', { name: de.nav.ship }));
     expect(screen.getByText(de.pending.title)).toBeInTheDocument();
-  });
-
-  it('links the ship view to the original document that still runs it', async () => {
-    renderAt('/');
-    await userEvent.click(screen.getByRole('link', { name: de.nav.ship }));
-    expect(screen.getByRole('link', { name: de.pending.open })).toHaveAttribute(
-      'href',
-      `${APP_CONFIG.basePath}legacy/generationenschiff-grundriss.html`
-    );
   });
 
   it('redirects an unknown route to the overview', () => {

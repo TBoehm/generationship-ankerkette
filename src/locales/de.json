@@ -35,7 +35,6 @@
   },
   "pending": {
     "title": "Noch nicht umgesetzt",
-    "body": "Diese Ansicht entsteht in TASK-001. Bis dahin läuft hier die ursprüngliche Fassung.",
-    "open": "Ursprüngliche Fassung öffnen"
+    "body": "Diese Ansicht entsteht in TASK-001, der Zusammenführung von Schiff und Flugbahn."
   }
 }

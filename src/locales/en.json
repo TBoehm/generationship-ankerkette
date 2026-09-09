@@ -35,7 +35,6 @@
   },
   "pending": {
     "title": "Not implemented yet",
-    "body": "This view is built in TASK-001. Until then the original version runs here.",
-    "open": "Open the original version"
+    "body": "This view is built in TASK-001, the merge of the ship and the flight path."
   }
 }
