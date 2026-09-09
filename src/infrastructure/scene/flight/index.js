@@ -42,6 +42,7 @@ import {
   limitsFor,
   FOCUS_ORBIT_LIMITS,
   INITIAL_FOCUS_DISTANCE,
+  NEAR_PLANE,
   orbitsAroundTarget,
   placeCamera,
 } from './camera.js';
@@ -119,6 +120,14 @@ export function createFlightScene({
    * gesture, tapping the ship, would do nothing.
    */
   const ORIGIN = new THREE.Vector3(0, 0, 0);
+  /**
+   * How much room to leave between the eye and what it is looking at, and how
+   * close the near plane may ever come. Twenty is enough that a body fills the
+   * frame without its own front face being cut off, and the floor keeps the
+   * depth buffer from collapsing on the smallest world in the set.
+   */
+  const NEAR_PLANE_MARGIN = 20;
+  const MIN_NEAR_PLANE = 1e-7;
   const SHIP_TARGET = { kind: 'ship' };
   const bodyById = new Map(bodies.map((body) => [body.id, body]));
   const pickTargets = new Map();
@@ -231,6 +240,14 @@ export function createFlightScene({
       distance = mix(flyTo.fromDistance, reach, t);
     }
 
+    // The dolly counts radii of the subject, so the angle it subtends is
+    // atan(1 / distance) whatever size it is drawn at: the toggle cannot
+    // change how large it looks. What it does change is how near the eye
+    // stands in scene units, and a body at its true size puts the eye well
+    // inside the default near plane, which would clip the whole scene away.
+    camera.near = Math.min(NEAR_PLANE, Math.max(MIN_NEAR_PLANE, distance / NEAR_PLANE_MARGIN));
+    camera.updateProjectionMatrix();
+
     placeCamera(camera, {
       mode,
       orbit: { ...(body ? focusOrbit : activeOrbit()), distance },
@@ -258,16 +275,11 @@ export function createFlightScene({
     body.glow.position.copy(body.mesh.position);
 
     const fromShip = body.position.distanceTo(shipPosition);
-    // The body being circled is drawn at a size worth looking at, whatever the
-    // toggle says. True sizes are what the overview is for; once the eye has
-    // flown to a planet, drawing it below a pixel would put the camera inside
-    // the near plane and clip the whole scene away.
-    const isSubject = body.id === focusBodyId;
     const shown = displayRadius(
       body.radiusAu,
       fromShip,
       Math.max(trueLength * factor, SMALLEST_WARPED_LENGTH),
-      boostSizes || isSubject
+      boostSizes
     );
     // System view pins the scale, so a body is not drawn at its angular size
     // from the ship. Emphasised means the cube root of the volume ratio, which
@@ -280,10 +292,9 @@ export function createFlightScene({
     // between the planets says nothing about that, which is why the earlier
     // two attempts, anchored first on Earth and then on the largest planet,
     // both came out far too large.
-    const systemScale =
-      boostSizes || isSubject
-        ? SYSTEM_BODY_SCALE * body.cubeRadius
-        : warpLength(trueLength + body.radiusAu, parameters) - warpLength(trueLength, parameters);
+    const systemScale = boostSizes
+      ? SYSTEM_BODY_SCALE * body.cubeRadius
+      : warpLength(trueLength + body.radiusAu, parameters) - warpLength(trueLength, parameters);
     body.mesh.scale.setScalar(inSystem ? systemScale : Math.max(shown, SMALLEST_BODY_SCALE));
 
     if (body.absoluteMagnitude !== null) {

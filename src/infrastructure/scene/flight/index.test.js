@@ -901,3 +901,74 @@ describe('flying to a planet instead of cutting to it', () => {
     expect(forward.dot(toTarget)).toBeCloseTo(1, 4);
   });
 });
+
+describe('switching sizes while circling a planet', () => {
+  const bodyOf = (scene, id) => {
+    let found = null;
+    scene.root.traverse((object) => {
+      if (object.name === id) found = object;
+    });
+    return found;
+  };
+
+  const apparentAngle = (scene, id) => {
+    scene.root.updateMatrixWorld(true);
+    const body = bodyOf(scene, id);
+    return Math.atan(body.scale.x / scene.camera.position.distanceTo(body.position));
+  };
+
+  const circling = (id, mode) => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode(mode);
+    scene.setBoostSizes(true);
+    scene.setFocusBody(id);
+    scene.update(FLY_TO_DURATION_MS);
+    scene.update(16);
+    return scene;
+  };
+
+  for (const mode of ['chase', 'system']) {
+    it(`keeps the planet the same size on screen through the toggle, ${mode}`, () => {
+      const scene = circling('jupiter', mode);
+      const before = apparentAngle(scene, 'jupiter');
+      scene.setBoostSizes(false);
+      scene.update(16);
+      expect(apparentAngle(scene, 'jupiter')).toBeCloseTo(before, 6);
+    });
+
+    it(`draws the circled planet at true size like every other one, ${mode}`, () => {
+      const scene = circling('jupiter', mode);
+      const emphasised = bodyOf(scene, 'jupiter').scale.x;
+      scene.setBoostSizes(false);
+      scene.update(16);
+      expect(bodyOf(scene, 'jupiter').scale.x).toBeLessThan(emphasised / 10);
+    });
+
+    it(`keeps the near plane inside the eye distance, ${mode}`, () => {
+      const scene = circling('jupiter', mode);
+      scene.setBoostSizes(false);
+      scene.update(16);
+      const reach = scene.camera.position.distanceTo(bodyOf(scene, 'jupiter').position);
+      expect(scene.camera.near).toBeLessThan(reach);
+      expect(scene.camera.near).toBeGreaterThan(0);
+    });
+  }
+
+  it('gives the near plane back once the planet is released', () => {
+    const scene = circling('jupiter', 'system');
+    scene.setBoostSizes(false);
+    scene.update(16);
+    expect(scene.camera.near).toBeLessThan(NEAR_PLANE);
+    scene.setFocusBody(null);
+    scene.update(FLY_TO_DURATION_MS);
+    scene.update(16);
+    expect(scene.camera.near).toBe(NEAR_PLANE);
+  });
+
+  it('never opens the near plane wider than the default', () => {
+    const scene = circling('jupiter', 'system');
+    for (let i = 0; i < 40; i += 1) scene.handleZoom(1.2);
+    expect(scene.camera.near).toBeLessThanOrEqual(NEAR_PLANE);
+  });
+});
