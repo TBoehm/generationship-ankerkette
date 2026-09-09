@@ -10,8 +10,14 @@ abhängigen Werte mit nach und aktualisiere diese Datei.
 - Alle Texte in der Oberfläche auf Deutsch, deutsche Zahlformatierung (`toLocaleString('de-DE')`).
 - **Keine Gedankenstriche (—)** in Texten. Stattdessen Komma, Doppelpunkt, Klammern oder Punkt.
 - Keine rhetorischen Schlusspointen am Absatzende, Texte enden mit dem letzten Sachinhalt.
-- Kein Build-Schritt. Jede Datei ist ein eigenständiges HTML-Dokument mit Inline-CSS und
-  Inline-JS, three.js r128 per CDN. Doppelklick zum Öffnen muss funktionieren.
+- Der Entwicklungsablauf steht in `webapp-entwicklungsablauf.md`, die abgeleiteten
+  Skills unter `.claude/skills/`. Die Gates sind Teil jeder Aufgabe, nicht ein
+  Schritt danach.
+- Build über Vite, three.js r128 als npm-Abhängigkeit. Die Regel "kein Build-Schritt"
+  galt für die Einzeldokumente unter `legacy/` und ist mit TASK-001 abgelöst.
+- Nur Tests, die unbeaufsichtigt auf der GitHub CI laufen: Vitest in jsdom. Kein
+  Browser-Level, kein End-to-End-Level. Eine WebGL-Szene wird über ihre nach
+  `src/domain/` gezogene Mathematik geprüft, nicht durch Rendern.
 - three.js r128: kein `OrbitControls`, keine `CapsuleGeometry`. Kamerasteuerung ist
   handgeschrieben (Pointer-Events plus Pinch).
 - Mobil zuerst: alle Bedienelemente sind mit dem Daumen erreichbar, `touch-action:none`
@@ -137,7 +143,9 @@ geschleppt, Besatzung kommt zuletzt an Bord.
 | Magsegel-Bremsung, 1,901 mm/s² | 50,0 a | 15.800 AE |
 | **Gesamt** | **466,1 a** | **268.553 AE = 4,2465 Lj** |
 
-18 Generationen. Neptunbahn nach 1,7 Jahren bei 169 km/s.
+18 Generationen. Neptunbahn nach 1,7 Jahren bei 169 km/s, gezählt ab der Zündung.
+Auf der Missionsuhr, die beim Ablegen startet, sind das 3,2 Jahre. Der Legacy-Code
+addierte beide Uhren stumm zu einer Zahl, `flightStateAt` gibt sie getrennt zurück.
 
 **Keine Swing-bys.** Die Ablenkung fällt mit steigender Geschwindigkeit:
 Jupitervorbeiflug bei 10 km/s bringt 18,4 km/s (0,61 % der Zielgeschwindigkeit),
@@ -192,6 +200,8 @@ Position' = Richtung · L'      (Richtungen bleiben exakt erhalten)
 ```
 `WL0` wächst mit dem Abstand zum nächstgelegenen Ende der Reise mit:
 `WL0 = clamp(min(d, D_TOT - d) / 2000, 0.002, 300)`, `WS = 115 / log10(1 + 1e6/WL0)`.
+Die obere Klammer greift auf dieser Bahn nie: das Maximum liegt bei der Halbstrecke
+und beträgt 134.276,6 / 2000 = 67,1. Der Wert 300 ist toter Code.
 Dadurch ist am Start das Planetensystem aufgelöst, in der Mitte die Oortwolke,
 am Ziel das Proxima-System.
 
@@ -233,11 +243,24 @@ deshalb ist die Bewegung dort gut sichtbar. Die letzten 0,1 AE vor Proxima dauer
 
 ## Dateien
 
-| Datei | Inhalt | Stand |
+Das Projekt ist eine React/Vite-SPA, die statisch auf GitHub Pages ausgeliefert wird.
+Die drei ursprünglichen Einzeldokumente liegen unter `legacy/` und dienen als Vorlage
+der Portierung, sie werden nicht mehr weiterentwickelt.
+
+| Ort | Inhalt |
+|---|---|
+| `src/domain/` | Auslegungskonstanten, Flugprofil, Deckgeometrie, Darstellungsmathematik. Frei von three.js und React, vollständig unit-getestet |
+| `src/infrastructure/` | three.js-Szenenaufbau, i18n, Build-Konfiguration |
+| `src/presentation/` | React-Ansichten, Tokens, Komponenten |
+| `sources/` | Tickets und Specs, siehe `sources/README.md` |
+| `.claude/skills/` | die zehn Skills des Entwicklungsablaufs |
+| `scripts/ci-gates.mjs` | die Quality Gates als Code, gespiegelt von den Actions-Workflows |
+
+| Legacy-Datei | Inhalt | Stand |
 |---|---|---|
-| `generationenschiff-grundriss.html` | 3D-Schnittansicht des Schiffs, klickbare Sektionen, Decks und ausgerollte Deckpläne mit Raumaufteilung | aktuell |
-| `flug-3d-proxima.html` | 3D-Flug durch Sonnensystem, Heliosphäre, Oortwolke bis Proxima b, vier Kameramodi | aktuell |
-| `flugbahn-alpha-centauri.html` | ältere 2D-Fassung der Reise: Korridorstreifen, Himmelsfenster mit Helligkeiten | **veraltet** |
+| `legacy/generationenschiff-grundriss.html` | 3D-Schnittansicht des Schiffs, klickbare Sektionen, Decks und ausgerollte Deckpläne mit Raumaufteilung | Vorlage für TASK-001 |
+| `legacy/flug-3d-proxima.html` | 3D-Flug durch Sonnensystem, Heliosphäre, Oortwolke bis Proxima b, vier Kameramodi | Vorlage für TASK-001 |
+| `legacy/flugbahn-alpha-centauri.html` | ältere 2D-Fassung der Reise: Korridorstreifen, Himmelsfenster mit Helligkeiten | **veraltet**, zielt noch auf α Cen AB |
 
 ## Offene Punkte
 
@@ -251,3 +274,8 @@ deshalb ist die Bewegung dort gut sichtbar. Die letzten 0,1 AE vor Proxima dauer
    noch als eigene Klickziele pro Sektor, aktuell ist nur je Deck auswählbar.
 5. Die Systemansicht springt bei der Halbstrecke hart zwischen Sonne und Proxima
    als Abbildungszentrum. Ein weicher Übergang wäre schöner.
+6. Die Sektorlänge von Deck 5 steht in der Tabelle mit 165,0 m, gerechnet sind es
+   164,9 m. Der Überschuss der Fehlrechnung mit fünfmal r=125 beträgt 8,7 %, nicht
+   8 %. Beides ist Rundung in dieser Datei, der Code rechnet die exakten Werte.
+7. TASK-001 portiert die beiden Szenen. Bis dahin zeigen `/schiff` und `/flug` nur
+   einen Platzhalter, die lauffähigen Vorlagen liegen unter `legacy/`.

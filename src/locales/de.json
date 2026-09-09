@@ -1,0 +1,40 @@
+{
+  "app": {
+    "title": "Ankerkette",
+    "subtitle": "Generationenschiff nach Proxima Centauri"
+  },
+  "nav": {
+    "overview": "Übersicht",
+    "ship": "Schiff",
+    "flight": "Flug"
+  },
+  "overview": {
+    "lead": "Zwei Ansichten desselben Entwurfs: der Aufbau des Schiffs und die Reise, die es zurücklegt.",
+    "ship": "Generalplan, Decks und Raumaufteilung",
+    "flight": "Vom Sonnensystem bis Proxima Centauri b"
+  },
+  "figures": {
+    "length": "Länge",
+    "hullDiameter": "Rumpf ⌀",
+    "dryMass": "Trockenmasse",
+    "deckArea": "Deckfläche",
+    "crew": "Besatzung",
+    "generations": "Generationen",
+    "duration": "Reisedauer",
+    "cruiseSpeed": "Marschfahrt",
+    "distance": "Entfernung"
+  },
+  "units": {
+    "metre": "m",
+    "squareMetre": "m²",
+    "tonne": "t",
+    "year": "a",
+    "kilometrePerSecond": "km/s",
+    "lightYear": "Lj",
+    "persons": "Personen"
+  },
+  "pending": {
+    "title": "Noch nicht umgesetzt",
+    "body": "Diese Ansicht entsteht in TASK-001. Bis dahin liegt die lauffähige Vorlage unter legacy/."
+  }
+}

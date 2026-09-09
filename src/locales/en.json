@@ -1,0 +1,40 @@
+{
+  "app": {
+    "title": "Ankerkette",
+    "subtitle": "Generation ship to Proxima Centauri"
+  },
+  "nav": {
+    "overview": "Overview",
+    "ship": "Ship",
+    "flight": "Flight"
+  },
+  "overview": {
+    "lead": "Two views of one design: how the ship is built and the journey it makes.",
+    "ship": "General plan, decks and room layout",
+    "flight": "From the solar system to Proxima Centauri b"
+  },
+  "figures": {
+    "length": "Length",
+    "hullDiameter": "Hull ⌀",
+    "dryMass": "Dry mass",
+    "deckArea": "Deck area",
+    "crew": "Crew",
+    "generations": "Generations",
+    "duration": "Duration",
+    "cruiseSpeed": "Cruise speed",
+    "distance": "Distance"
+  },
+  "units": {
+    "metre": "m",
+    "squareMetre": "m²",
+    "tonne": "t",
+    "year": "yr",
+    "kilometrePerSecond": "km/s",
+    "lightYear": "ly",
+    "persons": "persons"
+  },
+  "pending": {
+    "title": "Not implemented yet",
+    "body": "This view is built in TASK-001. Until then the working original lives under legacy/."
+  }
+}

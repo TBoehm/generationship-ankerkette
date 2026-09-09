@@ -1,0 +1,33 @@
+/* Single source of truth for every visual value. Nothing outside this file
+   declares a raw colour, radius or type size. */
+:root {
+  --color-hull: #05070a;
+  --color-panel: #141a20;
+  --color-rule: #28313a;
+  --color-bone: #e6e2d8;
+  --color-dim: #98a1a9;
+  --color-brass: #c9a253;
+  --color-warm: #d98a4a;
+  --color-cool: #7fa8c4;
+
+  --font-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --text-key: 10.5px;
+  --text-body: 12.5px;
+  --text-title: 15px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+
+  --radius-panel: 4px;
+  --size-touch: 44px;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}

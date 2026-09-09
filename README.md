@@ -1,26 +1,57 @@
-# Ankerkette, Übergabe an Claude Code
+# Ankerkette
 
-## So startest du
+Interaktive Visualisierungen eines physikalisch durchgerechneten Generationenschiffs
+nach Proxima Centauri. Statisch ausgelieferte React/Vite-SPA auf GitHub Pages.
 
-1. Diesen Ordner entpacken, zum Beispiel nach `~/projekte/ankerkette`
-2. Im Terminal in den Ordner wechseln und `claude` starten
-3. Claude Code liest `CLAUDE.md` beim Start automatisch ein und hat damit den
-   vollständigen Auslegungsstand: alle Annahmen, hergeleiteten Zahlen, die
-   Darstellungsmathematik und die offenen Punkte
+## Loslegen
 
-## Dateien
+```bash
+npm ci
+npm run dev
+```
 
-- `CLAUDE.md` ist der Projektkontext. Er wird bei jedem Start gelesen. Wenn sich eine
-  Auslegungsgröße ändert, muss er mitgepflegt werden.
-- `generationenschiff-grundriss.html` ist die Detailansicht des Schiffs mit Decks
-  und Raumaufteilung.
-- `flug-3d-proxima.html` ist die Reiseansicht bis Proxima b.
-- `flugbahn-alpha-centauri.html` ist eine ältere 2D-Fassung der Reise und noch auf
-  das falsche Ziel gerechnet, siehe offene Punkte in `CLAUDE.md`.
+Der Port wird aus dem Worktree-Pfad abgeleitet, nicht fest vergeben, damit zwei
+Sessions parallel laufen können. `ANKERKETTE_PORT` überschreibt ihn.
 
-Alle HTML-Dateien laufen ohne Build-Schritt, einfach im Browser öffnen.
+## Die drei Dokumente
 
-## Erster sinnvoller Auftrag
+| Datei | Inhalt |
+|---|---|
+| `CLAUDE.md` | Auslegungsstand des Schiffs. Alle Zahlen sind hergeleitet. Wer eine Größe bewegt, rechnet die abhängigen Werte nach und pflegt die Datei mit |
+| `webapp-entwicklungsablauf.md` | Entwicklungsablauf, Rollen der Skills, Quality Gates |
+| `sources/README.md` | die zwei Wissensschichten, Ticket und Spec |
 
-"Lies CLAUDE.md. Stelle flugbahn-alpha-centauri.html auf Proxima Centauri um,
-so dass es zu flug-3d-proxima.html passt, und rechne die Zeiten nach."
+## Ablauf
+
+Ticket über `/plan-task` nach `sources/tracking/`, Umsetzung über `/implement` in
+einem eigenen Worktree, Gates über `/gate-runner`, Pull Request gegen `develop`.
+Nur ein Merge nach `main` veröffentlicht, und dieser Merge gehört dem Menschen.
+
+## Gates
+
+```bash
+npm run qa                 # alle Gates, jeder läuft auch nach einem Fehlschlag weiter
+npm run qa -- --job checks # Format, Lint, i18n, Version, ohne Build
+```
+
+Die Liste steht als Code in `scripts/ci-gates.mjs`. Die Actions-Workflows rufen
+denselben Runner, und `scripts/ci-gates.test.mjs` wird rot, sobald ein Pipeline-Job
+daran vorbeiläuft.
+
+Getestet wird mit Vitest in jsdom, also nur mit dem, was unbeaufsichtigt auf der
+GitHub CI läuft. Es gibt kein Browser-Level und kein End-to-End-Level. Was eine
+WebGL-Szene rechnet, liegt deshalb in `src/domain/` und wird dort geprüft.
+
+## Veröffentlichung
+
+Push auf `main` baut, prüft und veröffentlicht auf GitHub Pages, danach Tag und
+Release. Der `base`-Pfad ist `/generationship-ankerkette/`. `404.html` geht als
+Kopie der `index.html` mit, sonst wäre jeder Reload auf einer Unterroute ein 404.
+`pages:check` prüft beides am gebauten Ergebnis.
+
+## Legacy
+
+`legacy/` enthält die drei ursprünglichen Einzeldokumente ohne Build-Schritt. Sie
+sind die Vorlage der Portierung in TASK-001 und werden nicht weiterentwickelt.
+`legacy/flugbahn-alpha-centauri.html` zielt noch auf α Cen AB und ist damit auf ein
+anderes Ziel gerechnet.

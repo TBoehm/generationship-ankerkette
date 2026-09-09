@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background: var(--color-hull);
+    color: var(--color-bone);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    touch-action: none;
+  }
+
+  button {
+    min-height: var(--size-touch);
+    min-width: var(--size-touch);
+    font: inherit;
+  }
+
+  @media (min-width: 1024px) {
+    button {
+      min-height: 32px;
+      min-width: 32px;
+    }
+  }
+}
