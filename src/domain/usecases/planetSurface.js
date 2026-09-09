@@ -99,3 +99,61 @@ export function surfaceShade(style, seed, u, v) {
   const wrapped = u - Math.floor(u);
   return build(seed, wrapped, Math.min(1, Math.max(0, v)));
 }
+
+const CAP_SOFTNESS = 0.55;
+const SPOT_DARKENING = 0.18;
+
+export function polarCapStrength(v, extent) {
+  if (!extent) return 0;
+  const toPole = Math.min(v, 1 - v);
+  const edge = extent;
+  if (toPole >= edge) return 0;
+  const t = 1 - toPole / edge;
+  return smoothstep(Math.min(1, t / CAP_SOFTNESS));
+}
+
+/** Distance to the spot, measured the short way around the longitude. */
+function spotStrength(spot, u, v) {
+  if (!spot) return 0;
+  const du = Math.abs(u - spot.u);
+  const wrapped = Math.min(du, 1 - du);
+  const dv = v - spot.v;
+  const reach = Math.hypot(wrapped, dv) / spot.radius;
+  if (reach >= 1) return 0;
+  return smoothstep(1 - reach);
+}
+
+/**
+ * The full look of one point on a world: the style's own shading, a polar cap
+ * washed towards white, and an optional storm running warm. The result is a
+ * multiplier per channel, so the palette still decides the hue and this only
+ * shapes it.
+ */
+export function surfaceTexel(look, u, v) {
+  const wrapped = u - Math.floor(u);
+  const clamped = Math.min(1, Math.max(0, v));
+  const shade = surfaceShade(look.style, look.seed, wrapped, clamped);
+
+  let r = shade;
+  let g = shade;
+  let b = shade;
+
+  const cap = polarCapStrength(clamped, look.capExtent);
+  if (cap > 0) {
+    // Ice reads as bright and slightly cold, not merely as a lighter ground.
+    r = r + (0.94 - r) * cap;
+    g = g + (0.97 - g) * cap;
+    b = b + (1 - b) * cap;
+  }
+
+  const storm = spotStrength(look.spot, wrapped, clamped);
+  if (storm > 0) {
+    const warmth = (look.spot.warmth ?? 0.5) * storm;
+    const darken = 1 - SPOT_DARKENING * storm;
+    r = clampUnit(r * darken * (1 + warmth * 0.45));
+    g = clampUnit(g * darken * (1 - warmth * 0.1));
+    b = clampUnit(b * darken * (1 - warmth * 0.5));
+  }
+
+  return { r: clampUnit(r), g: clampUnit(g), b: clampUnit(b) };
+}

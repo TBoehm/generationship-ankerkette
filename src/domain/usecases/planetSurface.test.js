@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SURFACE_STYLES, surfaceShade } from './planetSurface.js';
+import { SURFACE_STYLES, polarCapStrength, surfaceShade, surfaceTexel } from './planetSurface.js';
 
 const GRID = [];
 for (let i = 0; i < 24; i += 1) {
@@ -108,5 +108,140 @@ describe('cratered', () => {
 describe('an unknown style', () => {
   it('falls back to a flat surface rather than throwing mid frame', () => {
     expect(surfaceShade('nosuchstyle', 1, 0.3, 0.7)).toBe(1);
+  });
+});
+
+describe('surfaceTexel', () => {
+  const plain = { style: 'mottled', seed: 3 };
+
+  it('returns a multiplier per channel', () => {
+    const texel = surfaceTexel(plain, 0.3, 0.6);
+    for (const channel of ['r', 'g', 'b']) {
+      expect(texel[channel]).toBeGreaterThanOrEqual(0);
+      expect(texel[channel]).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('is grey where nothing else is asked for, so the palette decides the hue', () => {
+    const texel = surfaceTexel(plain, 0.3, 0.6);
+    expect(texel.r).toBe(texel.g);
+    expect(texel.g).toBe(texel.b);
+  });
+
+  it('agrees with the plain shade when there is no cap and no spot', () => {
+    expect(surfaceTexel(plain, 0.42, 0.18).r).toBeCloseTo(
+      surfaceShade('mottled', 3, 0.42, 0.18),
+      9
+    );
+  });
+
+  it('is deterministic', () => {
+    const look = {
+      style: 'banded',
+      seed: 2,
+      capExtent: 0.2,
+      spot: { u: 0.4, v: 0.6, radius: 0.1 },
+    };
+    expect(surfaceTexel(look, 0.4, 0.6)).toEqual(surfaceTexel(look, 0.4, 0.6));
+  });
+});
+
+describe('polar caps', () => {
+  const capped = { style: 'cratered', seed: 4, capExtent: 0.18 };
+
+  it('brightens both poles and leaves the equator alone', () => {
+    const equator = surfaceTexel(capped, 0.5, 0.5);
+    const north = surfaceTexel(capped, 0.5, 0.99);
+    const south = surfaceTexel(capped, 0.5, 0.01);
+    expect(north.r).toBeGreaterThan(equator.r);
+    expect(south.r).toBeGreaterThan(equator.r);
+  });
+
+  it('washes the cap towards white rather than merely brightening the ground', () => {
+    const cap = surfaceTexel({ ...capped, style: 'mottled' }, 0.5, 0.995);
+    expect(cap.b).toBeGreaterThanOrEqual(cap.r);
+    expect(cap.b).toBeGreaterThan(0.9);
+  });
+
+  it('fades in rather than drawing a hard rim', () => {
+    // The blended value carries the ground under the cap, which varies on its
+    // own, so the falloff is asserted on the cap strength itself.
+    const extent = 0.18;
+    const at = (v) => polarCapStrength(v, extent);
+    expect(at(0.995)).toBeGreaterThanOrEqual(at(0.95));
+    expect(at(0.95)).toBeGreaterThan(at(0.9));
+    expect(at(0.9)).toBeGreaterThan(at(0.85));
+    expect(at(0.85)).toBeGreaterThan(0);
+  });
+
+  it('does nothing without an extent', () => {
+    const texel = surfaceTexel({ style: 'cratered', seed: 4 }, 0.5, 0.99);
+    expect(texel.r).toBe(texel.b);
+  });
+});
+
+describe('polarCapStrength', () => {
+  it('is full at the pole and gone at the equator', () => {
+    expect(polarCapStrength(1, 0.2)).toBe(1);
+    expect(polarCapStrength(0, 0.2)).toBe(1);
+    expect(polarCapStrength(0.5, 0.2)).toBe(0);
+  });
+
+  it('is zero everywhere without an extent', () => {
+    for (let i = 0; i <= 20; i += 1) expect(polarCapStrength(i / 20, 0)).toBe(0);
+  });
+
+  it('never leaves the unit range', () => {
+    for (let i = 0; i <= 40; i += 1) {
+      const value = polarCapStrength(i / 40, 0.3);
+      expect(value).toBeGreaterThanOrEqual(0);
+      expect(value).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('reaches exactly as far as the extent asks and no further', () => {
+    // The boundary itself is a float coin toss, so it is checked either side.
+    expect(polarCapStrength(0.81, 0.18)).toBe(0);
+    expect(polarCapStrength(0.83, 0.18)).toBeGreaterThan(0);
+  });
+
+  it('is symmetric between the two poles', () => {
+    for (let i = 0; i <= 20; i += 1) {
+      const v = i / 20;
+      expect(polarCapStrength(v, 0.25)).toBeCloseTo(polarCapStrength(1 - v, 0.25), 12);
+    }
+  });
+});
+
+describe('a storm spot', () => {
+  const look = {
+    style: 'banded',
+    seed: 6,
+    spot: { u: 0.35, v: 0.62, radius: 0.09, warmth: 0.55 },
+  };
+
+  it('runs warm at its centre, red up and blue down', () => {
+    const centre = surfaceTexel(look, 0.35, 0.62);
+    expect(centre.r).toBeGreaterThan(centre.b);
+  });
+
+  it('leaves the far side of the world untouched', () => {
+    const away = surfaceTexel(look, 0.85, 0.3);
+    expect(away.r).toBe(away.b);
+  });
+
+  it('reaches across the seam, a spot near the edge is still round', () => {
+    const near = { ...look, spot: { ...look.spot, u: 0.01 } };
+    const left = surfaceTexel(near, 0.99, 0.62);
+    expect(left.r).toBeGreaterThan(left.b);
+  });
+
+  it('fades outwards instead of stamping a disc', () => {
+    const warmth = (u) => {
+      const texel = surfaceTexel(look, u, 0.62);
+      return texel.r - texel.b;
+    };
+    expect(warmth(0.35)).toBeGreaterThan(warmth(0.39));
+    expect(warmth(0.39)).toBeGreaterThan(warmth(0.44));
   });
 });

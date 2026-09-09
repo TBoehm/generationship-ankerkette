@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { collectResources, mountFlightScene } from './testing.js';
 import { toScene } from './coordinates.js';
 import { PROXIMA_POSITION, SUN_POSITION } from './layout.js';
-import { FAR_PLANE, FIELD_OF_VIEW, NEAR_PLANE } from './camera.js';
+import { FAR_PLANE, FIELD_OF_VIEW, INITIAL_SYSTEM_DISTANCE, NEAR_PLANE } from './camera.js';
 import { MISSION } from '../../../domain/constants/missionProfile.js';
 import { DESTINATIONS, PLANETS, PX_PLANETS, STARS } from '../../../domain/constants/starSystem.js';
 import { pathPositionAt } from '../../../domain/usecases/flightGeometry.js';
@@ -474,5 +474,238 @@ describe('circling a body', () => {
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(scene.camera.quaternion);
     const toTarget = target.position.clone().sub(scene.camera.position).normalize();
     expect(forward.dot(toTarget)).toBeCloseTo(1, 4);
+  });
+});
+
+describe('emphasised against true sizes', () => {
+  const scaleOf = (scene, id) => {
+    let found = null;
+    scene.root.traverse((object) => {
+      if (object.name === id) found = object;
+    });
+    return found.scale.x;
+  };
+
+  it('changes the bodies in chase view', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setBoostSizes(false);
+    const trueSize = scaleOf(scene, 'jupiter');
+    scene.setBoostSizes(true);
+    expect(scaleOf(scene, 'jupiter')).toBeGreaterThan(trueSize * 10);
+  });
+
+  it('changes the bodies in system view as well, where it used to do nothing', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode('system');
+    scene.setBoostSizes(true);
+    const emphasised = scaleOf(scene, 'jupiter');
+    scene.setBoostSizes(false);
+    expect(scaleOf(scene, 'jupiter')).not.toBeCloseTo(emphasised, 6);
+  });
+
+  it('shows the real radius ratio in system view when sizes are true', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode('system');
+    scene.setBoostSizes(false);
+    const jupiter = PLANETS.find((planet) => planet.id === 'jupiter');
+    const earth = PLANETS.find((planet) => planet.id === 'earth');
+    expect(scaleOf(scene, 'jupiter') / scaleOf(scene, 'earth')).toBeCloseTo(
+      jupiter.radiusKm / earth.radiusKm,
+      3
+    );
+  });
+
+  it('compresses that ratio when sizes are emphasised, or Mercury would vanish', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode('system');
+    scene.setBoostSizes(true);
+    const spread = scaleOf(scene, 'jupiter') / scaleOf(scene, 'mercury');
+    scene.setBoostSizes(false);
+    expect(scaleOf(scene, 'jupiter') / scaleOf(scene, 'mercury')).toBeGreaterThan(spread * 5);
+  });
+
+  it('keeps earth as the yardstick, unchanged by the toggle', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode('system');
+    scene.setBoostSizes(true);
+    const emphasised = scaleOf(scene, 'earth');
+    scene.setBoostSizes(false);
+    expect(scaleOf(scene, 'earth')).toBeCloseTo(emphasised, 9);
+  });
+});
+
+describe('tapping the ship', () => {
+  const centreOf = (scene, width, height) => {
+    scene.root.updateMatrixWorld(true);
+    return { x: width / 2, y: height / 2 };
+  };
+
+  it('reports the ship, so the view can hand the eye back to it', () => {
+    const { scene, width, height } = mount();
+    scene.setDistance(30);
+    scene.setFocusBody('jupiter');
+    scene.setFocusBody(null);
+    const picked = [];
+    const { x, y } = centreOf(scene, width, height);
+    scene.handleTap(x, y, (selection) => picked.push(selection));
+    expect(picked.some((entry) => entry.kind === 'ship')).toBe(true);
+  });
+
+  it('does not report the ship in the two aimed modes, where the eye is inside it', () => {
+    const { scene, width, height } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode('front');
+    const picked = [];
+    const { x, y } = centreOf(scene, width, height);
+    scene.handleTap(x, y, (selection) => picked.push(selection));
+    expect(picked.some((entry) => entry.kind === 'ship')).toBe(false);
+  });
+
+  it('still reports bodies, the ship must not swallow every tap', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode('system');
+    let found = null;
+    scene.root.traverse((object) => {
+      if (object.name === 'jupiter') found = object;
+    });
+    scene.root.updateMatrixWorld(true);
+    const projected = found.position.clone().project(scene.camera);
+    const picked = [];
+    scene.handleTap(
+      (projected.x * 0.5 + 0.5) * 800,
+      (-projected.y * 0.5 + 0.5) * 600,
+      (selection) => picked.push(selection)
+    );
+    expect(picked.some((entry) => entry.kind === 'body' && entry.id === 'jupiter')).toBe(true);
+  });
+});
+
+describe('saturn wears its rings', () => {
+  const find = (scene, name) => {
+    let found = null;
+    scene.root.traverse((object) => {
+      if (object.name === name) found = object;
+    });
+    return found;
+  };
+
+  it('hangs a ring on saturn and on nobody else', () => {
+    const { scene } = mount();
+    expect(find(scene, 'saturn-ring')).toBeTruthy();
+    expect(find(scene, 'jupiter-ring')).toBeNull();
+    expect(find(scene, 'earth-ring')).toBeNull();
+  });
+
+  it('carries the ring as a child, so it scales with the planet', () => {
+    const { scene } = mount();
+    expect(find(scene, 'saturn-ring').parent).toBe(find(scene, 'saturn'));
+  });
+
+  it('disposes the ring with everything else', () => {
+    const { scene, registry } = mount();
+    scene.dispose();
+    expect(registry.size()).toBe(0);
+  });
+});
+
+describe('true sizes must not let a star swallow the system view', () => {
+  const scaleOf = (scene, id) => {
+    let found = null;
+    scene.root.traverse((object) => {
+      if (object.name === id) found = object;
+    });
+    return found.scale.x;
+  };
+
+  it('keeps the sun well inside the view the camera looks at', () => {
+    // The sun is 109 Earth radii. Drawn at that ratio in a view a hundred and
+    // fifty units wide it is not a body any more, it is a wall the camera
+    // stands inside. The toggle is about the planets.
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode('system');
+    scene.setBoostSizes(false);
+    expect(scaleOf(scene, 'sun')).toBeLessThan(INITIAL_SYSTEM_DISTANCE / 8);
+  });
+
+  it('leaves the sun alone whichever way the toggle stands', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode('system');
+    scene.setBoostSizes(true);
+    const emphasised = scaleOf(scene, 'sun');
+    scene.setBoostSizes(false);
+    expect(scaleOf(scene, 'sun')).toBeCloseTo(emphasised, 9);
+  });
+
+  it('still gives the planets their honest ratio', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode('system');
+    scene.setBoostSizes(false);
+    const jupiter = PLANETS.find((planet) => planet.id === 'jupiter');
+    const earth = PLANETS.find((planet) => planet.id === 'earth');
+    expect(scaleOf(scene, 'jupiter') / scaleOf(scene, 'earth')).toBeCloseTo(
+      jupiter.radiusKm / earth.radiusKm,
+      3
+    );
+  });
+});
+
+describe('the ship stays findable while a planet is circled', () => {
+  const find = (scene, name) => {
+    let found = null;
+    scene.root.traverse((object) => {
+      if (object.name === name) found = object;
+    });
+    return found;
+  };
+
+  it('hides the mark while the ship itself is the subject', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    expect(find(scene, 'ship-marker').visible).toBe(false);
+  });
+
+  it('shows the mark as soon as the eye moves to a planet', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setFocusBody('jupiter');
+    expect(find(scene, 'ship-marker').visible).toBe(true);
+  });
+
+  it('hides it again on the way back', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setFocusBody('jupiter');
+    scene.setFocusBody(null);
+    expect(find(scene, 'ship-marker').visible).toBe(false);
+  });
+
+  it('counts the mark as the ship, so tapping it comes back', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setFocusBody('jupiter');
+    expect(find(scene, 'ship-marker')).toBeTruthy();
+  });
+
+  it('leaves the ship off screen up close, which is what the dock button is for', () => {
+    // Circling a planet at a few radii puts the ship behind the camera. The
+    // mark is drawn and it is a pick target, but it can only be tapped once
+    // the ship is back in frame, so the way home cannot depend on it alone.
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setFocusBody('jupiter');
+    scene.root.updateMatrixWorld(true);
+    const world = find(scene, 'ship-marker').getWorldPosition(new THREE.Vector3());
+    const projected = world.clone().project(scene.camera);
+    const onScreen = Math.abs(projected.x) <= 1 && Math.abs(projected.y) <= 1 && projected.z < 1;
+    expect(onScreen).toBe(false);
   });
 });

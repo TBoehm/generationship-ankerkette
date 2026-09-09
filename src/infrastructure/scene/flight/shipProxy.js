@@ -17,6 +17,13 @@ const FULL_TURN = Math.PI * 2;
 const SPOKES_PER_RING = 6;
 const CHARGE_COUNT = 6;
 const SAIL_SPOKES = 6;
+/**
+ * A marker at the ship, the same device the bodies use. Circling a planet puts
+ * the ship far behind the camera and far below a pixel, and without a mark
+ * there is nothing left on screen to tap to come back to it.
+ */
+const MARKER_SIZE = 7;
+const MARKER_OPACITY = 0.85;
 
 /** Radians per second. The rings counter rotate at the same rate. */
 export const RING_SPIN_RATE = 0.96;
@@ -165,7 +172,26 @@ export function createShipProxy(resources) {
   }
   group.add(sail);
 
-  return { group, ringA, ringB, plume, sail, plumeMaterial, sailMaterial };
+  const markerGeometry = resources.geometry(new THREE.BufferGeometry());
+  markerGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3), 3));
+  markerGeometry.computeBoundingSphere();
+  const marker = new THREE.Points(
+    markerGeometry,
+    resources.material(
+      new THREE.PointsMaterial({
+        color: proxyColor('marker'),
+        size: MARKER_SIZE,
+        sizeAttenuation: false,
+        transparent: true,
+        depthWrite: false,
+      }),
+      MARKER_OPACITY
+    )
+  );
+  marker.name = 'ship-marker';
+  group.add(marker);
+
+  return { group, ringA, ringB, plume, sail, plumeMaterial, sailMaterial, marker };
 }
 
 /** One frame of the two counter rotating rings, in seconds. */

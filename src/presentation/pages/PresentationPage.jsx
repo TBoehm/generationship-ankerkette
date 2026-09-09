@@ -55,7 +55,10 @@ export default function PresentationPage() {
       // The journey reports bodies, the ship reports sections and decks. They
       // are two different kinds of selection and must not be fed to the same
       // state machine, which would silently drop whichever it did not know.
-      if (picked && picked.kind === 'body') setFocusBody(picked);
+      if (!picked) return;
+      // Tapping the ship is how the eye comes back from a planet.
+      if (picked.kind === 'ship') setFocusBody(null);
+      else if (picked.kind === 'body') setFocusBody(picked);
       else setSelection((current) => select(current, picked));
     });
     const settings = settingsRef.current;

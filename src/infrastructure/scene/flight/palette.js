@@ -70,6 +70,8 @@ export const LIGHT_COLORS = Object.freeze({
 export const PROXY_COLORS = Object.freeze({
   ...SECTION_COLORS,
   exhaust: 0xff9a4a,
+  // The mark that keeps the ship findable once it is smaller than a pixel.
+  marker: 0xc9a253,
 });
 
 function lookUp(table, key, fallback) {

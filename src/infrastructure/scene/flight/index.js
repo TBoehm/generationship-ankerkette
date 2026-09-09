@@ -106,11 +106,21 @@ export function createFlightScene({
   const heading = toScene(DESTINATIONS.proxima.direction).normalize();
   proxy.group.lookAt(heading);
 
+  /**
+   * The ship is a pick target of its own. Circling a planet is a one way trip
+   * otherwise: the only way back is the button in the dock, and the obvious
+   * gesture, tapping the ship, would do nothing.
+   */
+  const SHIP_TARGET = { kind: 'ship' };
   const pickTargets = new Map();
   for (const body of bodies) {
     pickTargets.set(body.mesh, body);
     pickTargets.set(body.glow, body);
   }
+  proxy.group.traverse((object) => {
+    if (object.isMesh) pickTargets.set(object, SHIP_TARGET);
+  });
+  pickTargets.set(proxy.marker, SHIP_TARGET);
   const pickable = [...pickTargets.keys()];
   const pick = createPicker();
 
@@ -150,9 +160,26 @@ export function createFlightScene({
     return body ? focusOrbit.distance * body.mesh.scale.x : activeOrbit().distance;
   }
 
+  /**
+   * The threshold a point has to come within to count as tapped. It is an
+   * angle, so it has to be turned into a world distance at the range of the
+   * thing being tapped. While a planet is circled the eye sits a few planet
+   * radii away but the ship is far behind it, and a threshold measured on the
+   * near distance would never reach the ship's mark.
+   */
+  function pickThreshold() {
+    const reach = focusedBody()
+      ? Math.max(eyeDistance(), camera.position.distanceTo(proxy.group.position))
+      : eyeDistance();
+    return PICK_ANGLE * reach;
+  }
+
   function aim() {
     proxy.group.visible = orbitsAroundTarget(mode);
     const body = focusedBody();
+    // The mark stands in for the ship whenever the camera is looking at
+    // something else, which is exactly when the ship is too far off to tap.
+    proxy.marker.visible = body !== null;
     placeCamera(camera, {
       mode,
       // While a body is circled the dolly counts its radii, so the eye keeps
@@ -191,9 +218,19 @@ export function createFlightScene({
       Math.max(trueLength * factor, SMALLEST_WARPED_LENGTH),
       boostSizes
     );
-    body.mesh.scale.setScalar(
-      inSystem ? SYSTEM_BODY_SCALE * body.cubeRadius : Math.max(shown, SMALLEST_BODY_SCALE)
-    );
+    // System view pins the scale, so the bodies are drawn at a chosen ratio
+    // rather than at their angular size. Emphasised means the cube root of the
+    // volume ratio, which keeps Mercury visible next to Jupiter; true means the
+    // radius ratio itself, where Jupiter really is eleven Earths across. The
+    // toggle used to be ignored here entirely.
+    //
+    // Stars are exempt. The sun is 109 Earth radii, and drawn at that ratio in
+    // a view a hundred and fifty units wide it stops being a body and becomes a
+    // wall the camera stands inside. The toggle is about the planets.
+    const isStar = body.absoluteMagnitude !== null;
+    const systemRatio = boostSizes || isStar ? body.cubeRadius : body.radiusRatio;
+    const systemScale = SYSTEM_BODY_SCALE * systemRatio;
+    body.mesh.scale.setScalar(inSystem ? systemScale : Math.max(shown, SMALLEST_BODY_SCALE));
 
     if (body.absoluteMagnitude !== null) {
       const magnitude = apparentMagnitude(body.absoluteMagnitude, fromShip);
@@ -372,10 +409,12 @@ export function createFlightScene({
         camera,
         root,
         targets: pickable,
-        threshold: PICK_ANGLE * eyeDistance(),
+        threshold: pickThreshold(),
       });
-      const body = hit && pickTargets.get(hit);
-      if (body) onSelect({ kind: 'body', id: body.id, nameKey: body.nameKey });
+      const target = hit && pickTargets.get(hit);
+      if (!target) return;
+      if (target === SHIP_TARGET) onSelect(SHIP_TARGET);
+      else onSelect({ kind: 'body', id: target.id, nameKey: target.nameKey });
     },
 
     /**

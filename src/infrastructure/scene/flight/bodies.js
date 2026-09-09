@@ -11,7 +11,7 @@ import {
   ellipticOrbitPosition,
 } from '../../../domain/usecases/flightGeometry.js';
 import { bodyColor, emissiveColor } from './palette.js';
-import { createSurfaceGeometry } from './surfaces.js';
+import { createRingGeometry, createSurfaceGeometry, ringOpacity } from './surfaces.js';
 import { toScene } from './coordinates.js';
 import {
   ALPHA_CENTAURI_B_PLANE,
@@ -82,6 +82,28 @@ function createBody({ definition, resources, geometries, orbit = null }) {
       GLOW_OPACITY
     )
   );
+  const ringGeometry = createRingGeometry(definition.id, resources);
+  if (ringGeometry) {
+    const ring = new THREE.Mesh(
+      ringGeometry,
+      resources.material(
+        new THREE.MeshStandardMaterial({
+          color: bodyColor(definition.colorKey),
+          roughness: SURFACE_ROUGHNESS,
+          metalness: SURFACE_METALNESS,
+          side: THREE.DoubleSide,
+          transparent: true,
+          vertexColors: true,
+        }),
+        ringOpacity(definition.id)
+      )
+    );
+    ring.name = `${definition.id}-ring`;
+    // A child of the body, so every scale the warp puts on the planet reaches
+    // the ring as well and the two never drift apart.
+    mesh.add(ring);
+  }
+
   mesh.name = definition.id;
   glow.name = `${definition.id}-glow`;
   return {
@@ -90,6 +112,8 @@ function createBody({ definition, resources, geometries, orbit = null }) {
     radiusAu: definition.radiusKm / AU_KM,
     /** Cube root of the volume ratio, the exaggeration of the system view. */
     cubeRadius: Math.cbrt(definition.radiusKm / EARTH_RADIUS_KM),
+    /** The honest ratio, for when the viewer asks for true sizes. */
+    radiusRatio: definition.radiusKm / EARTH_RADIUS_KM,
     absoluteMagnitude: definition.absoluteMagnitude ?? null,
     position: new THREE.Vector3(),
     orbit,
