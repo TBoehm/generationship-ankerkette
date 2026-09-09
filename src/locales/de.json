@@ -31,10 +31,519 @@
     "year": "a",
     "kilometrePerSecond": "km/s",
     "lightYear": "Lj",
-    "persons": "Personen"
+    "persons": "Personen",
+    "cubicMetre": "m³",
+    "celsius": "°C",
+    "kelvin": "K",
+    "megawatt": "MW",
+    "percent": "%",
+    "day": "Tage"
   },
   "pending": {
     "title": "Noch nicht umgesetzt",
     "body": "Diese Ansicht entsteht in TASK-001, der Zusammenführung von Schiff und Flugbahn."
+  },
+  "ship": {
+    "deck": {
+      "ringA": {
+        "1": {
+          "name": "Deck 1, Wohnquartiere",
+          "use": "Schlafen und privat",
+          "note": "Das äußerste Deck hat die höchste Schwerkraft und ist deshalb den Schlafplätzen vorbehalten, weil Knochen- und Muskelabbau im Liegen am wenigsten kompensiert wird. Die Außenwand dieses Decks ist zugleich Druckhülle und Abschirmwassertank."
+        },
+        "2": {
+          "name": "Deck 2, Gemeinschaft",
+          "use": "Essen, Versammlung, Erholung",
+          "note": "Das soziale Zentrum des Rings. Die Parkfläche ist kein Luxus: Die Isolationsforschung aus Concordia und Mir zeigt, dass frei zugängliche, offene und begrünte Flächen der wirksamste Einzelfaktor gegen die typischen Überwinterungssyndrome sind."
+        },
+        "3": {
+          "name": "Deck 3, Arbeit und Versorgung",
+          "use": "Bildung, Medizin, Verwaltung",
+          "note": "Bildung ist auf einem Generationenschiff kein Nebenschauplatz, sondern das System, das die Betriebsfähigkeit über 18 Generationen trägt. Fällt die Ausbildungskette für eine einzige kritische Disziplin aus, ist das Wissen unwiederbringlich verloren."
+        },
+        "4": {
+          "name": "Deck 4, Technik",
+          "use": "Luft, Wasser, Abschirmung",
+          "note": "Jeder der vier Sektoren hat eine eigene, vollständige Luft- und Wasseraufbereitung. Ein Sektor kann abgeriegelt werden und die verbleibenden drei versorgen die Besatzung weiter, allerdings dann mit 25 Prozent weniger Reserve."
+        },
+        "5": {
+          "name": "Deck 5, Nabenanbindung",
+          "use": "Lager, Freifläche, Reserve",
+          "note": "Das innerste Deck hat die geringste Schwerkraft und die kürzeste Verbindung zur schwerelosen Nabe. Fast ein Drittel der Fläche ist bewusst leer gelassen: Über vier Jahrhunderte ändern sich die Anforderungen, und eine Population, die nicht umbauen kann, sitzt in der Auslegung von 2120 fest."
+        }
+      },
+      "ringB": {
+        "1": {
+          "name": "Deck 1, Getreide",
+          "use": "Grundnahrung",
+          "note": "Getreide liefert den Großteil der Kalorien und steht deshalb auf dem Deck mit der höchsten Schwerkraft, weil Wasserführung und Halmstabilität bei niedriger g schlechter funktionieren. Die Terrassen sind mehrlagig gestapelt, die angegebene Fläche ist Grundfläche, nicht Anbaufläche."
+        },
+        "2": {
+          "name": "Deck 2, Gemüse und Obst",
+          "use": "Frischkost",
+          "note": "Der Insektarium-Raum ist kein Detail am Rand. Ohne mitgeführte Bestäuber müsste jede Obstblüte von Hand bestäubt werden, und die dafür nötige Arbeitszeit übersteigt das, was eine Besatzung von 1.000 Personen dauerhaft aufbringen kann."
+        },
+        "3": {
+          "name": "Deck 3, Protein",
+          "use": "Eiweißerzeugung",
+          "note": "Vier unabhängige Proteinquellen statt einer großen. Der Grund ist nicht Abwechslung im Speiseplan, sondern Ausfallsicherheit: Eine Seuche in der Aquakultur darf nicht die gesamte Eiweißversorgung treffen."
+        },
+        "4": {
+          "name": "Deck 4, Verarbeitung und Lager",
+          "use": "Haltbarmachung",
+          "note": "Der Lagerbestand ist die eigentliche Sicherheitsreserve der Mission. Ausgelegt ist er auf 18 Monate Vollversorgung, also lang genug, um einen kompletten Ausfall eines Agrarsektors zu überbrücken und die Kulturen neu aufzubauen."
+        },
+        "5": {
+          "name": "Deck 5, Kreislauftechnik",
+          "use": "Stoffrückführung",
+          "note": "Hier schließt sich der Kreis: Alles, was auf dem Schiff als Abfall anfällt, wird zu Nährstoff für Deck 1 bis 3. Der Schließungsgrad dieses Decks entscheidet darüber, wie viel Masse das Schiff über 466 Jahre unwiederbringlich verliert."
+        }
+      }
+    },
+    "room": {
+      "ringA": {
+        "1": {
+          "dwellingBlockA": {
+            "name": "Wohneinheiten Block A",
+            "description": "25 Einheiten à 52 m², ausgelegt auf 3 bis 4 Personen"
+          },
+          "dwellingBlockB": {
+            "name": "Wohneinheiten Block B",
+            "description": "25 Einheiten, spiegelgleich zu Block A"
+          },
+          "dwellingBlockC": {
+            "name": "Wohneinheiten Block C",
+            "description": "25 Einheiten, umbaubar zu größeren oder kleineren Einheiten"
+          },
+          "communalKitchen": {
+            "name": "Gemeinschaftsküche und Waschhaus",
+            "description": "Vier Einheiten je Wohngruppe, spart Leitungslänge und Wasserumlauf"
+          },
+          "stairAndLiftNode": {
+            "name": "Treppen- und Aufzugsknoten",
+            "description": "Zwei Knoten je Sektor, Verbindung über alle fünf Decks bis zur Speiche"
+          },
+          "sectorAirlock": {
+            "name": "Sektorschleuse",
+            "description": "Druckdichter Übergang zum Nachbarsektor, im Notfall verriegelt"
+          },
+          "storageAndUtilities": {
+            "name": "Stauraum und Haustechnik",
+            "description": "Dezentrale Lüftung, Wasserverteilung, persönlicher Stauraum"
+          }
+        },
+        "2": {
+          "canteen": {
+            "name": "Kantine und Küche",
+            "description": "Zwei Schichten, direkte Anbindung an den Aufzug zu Ring B"
+          },
+          "assemblyHall": {
+            "name": "Versammlungssaal",
+            "description": "Fasst einen kompletten Sektor, dient auch als Notunterkunft"
+          },
+          "sportsHall": {
+            "name": "Sport- und Bewegungshalle",
+            "description": "Pflichtprogramm bei 0,5 g, Widerstandstraining gegen Knochenabbau"
+          },
+          "park": {
+            "name": "Parkfläche mit Bepflanzung",
+            "description": "Offene Grünfläche über die volle Sektorlänge, Blickachse 188 m"
+          },
+          "library": {
+            "name": "Bibliothek und Archivzugang",
+            "description": "Terminals zum Datenarchiv, physische Referenzbibliothek"
+          },
+          "hobbyWorkshops": {
+            "name": "Hobbywerkstätten",
+            "description": "Nicht produktionskritisch, bewusst getrennt von der Fertigung"
+          },
+          "sanitaryAndChangingRooms": {
+            "name": "Sanitär und Umkleide"
+          },
+          "circulationAndAncillary": {
+            "name": "Erschließung und Nebenräume"
+          }
+        },
+        "3": {
+          "school": {
+            "name": "Schule und Ausbildung",
+            "description": "Durchgehend vom Kleinkind bis zur Fachqualifikation, 3 bis 4 Träger je Spezialgebiet"
+          },
+          "infirmary": {
+            "name": "Krankenstation",
+            "description": "Operationsbereich, Isolierstation, Zahnmedizin, Geburtshilfe"
+          },
+          "laboratories": {
+            "name": "Labore",
+            "description": "Diagnostik, Wasseranalytik, Materialprüfung"
+          },
+          "controlAndAdministration": {
+            "name": "Leitstand und Verwaltung",
+            "description": "Zweitleitstand, der Hauptleitstand liegt in der Nabe"
+          },
+          "precisionWorkshops": {
+            "name": "Feinwerkstätten",
+            "description": "Instandsetzung von Bordtechnik, getrennt von der Hauptfertigung"
+          },
+          "consumablesStore": {
+            "name": "Lager Verbrauchsgüter"
+          },
+          "circulationAndAncillary": {
+            "name": "Erschließung und Nebenräume"
+          }
+        },
+        "4": {
+          "airProcessing": {
+            "name": "Luftaufbereitung",
+            "description": "CO₂-Bindung, Spurengasfilter, Sauerstoffpuffer für 30 Tage"
+          },
+          "waterProcessing": {
+            "name": "Wasseraufbereitung",
+            "description": "Grau- und Schwarzwasser getrennt, Rückgewinnung über 99 Prozent"
+          },
+          "shieldingWaterTanks": {
+            "name": "Abschirmwassertanks",
+            "description": "An der Außenwand, 0,5 m Wasseräquivalent gegen kosmische Strahlung"
+          },
+          "powerDistribution": {
+            "name": "Energieverteilung"
+          },
+          "materialRecovery": {
+            "name": "Stoffrückgewinnung",
+            "description": "Übergabe der Reststoffe an Ring B"
+          },
+          "maintenanceGalleries": {
+            "name": "Wartungsgänge"
+          }
+        },
+        "5": {
+          "spokeHead": {
+            "name": "Speichenkopf mit Aufzug",
+            "description": "Sechs Speichen je Ring, Fahrzeit zur Nabe rund 90 Sekunden"
+          },
+          "runningTrack": {
+            "name": "Laufbahn und Freifläche",
+            "description": "Durchgehende Bahn über den ganzen Ringumfang, 785 m Runde"
+          },
+          "longTermStore": {
+            "name": "Langzeitlager",
+            "description": "Selten benötigtes Material, bei niedriger Schwerkraft leichter zu bewegen"
+          },
+          "hubAirlock": {
+            "name": "Nabenschleuse"
+          },
+          "expansionReserve": {
+            "name": "Ausbaureserve",
+            "description": "Unausgebaut, für spätere Generationen freigehalten"
+          }
+        }
+      },
+      "ringB": {
+        "1": {
+          "grainTerracesNorth": {
+            "name": "Getreideterrassen Nord",
+            "description": "Weizen und Reis im Wechsel, vierlagig gestapelt"
+          },
+          "grainTerracesSouth": {
+            "name": "Getreideterrassen Süd",
+            "description": "Zeitversetzte Aussaat, damit die Ernte übers Jahr verteilt anfällt"
+          },
+          "irrigationAndNutrients": {
+            "name": "Bewässerung und Nährlösung",
+            "description": "Geschlossener Umlauf, Verluste unter 0,5 Prozent je Zyklus"
+          },
+          "harvestGallery": {
+            "name": "Ernte- und Transportgang",
+            "description": "Direkter Weg zum Aufzug in Richtung Verarbeitung auf Deck 4"
+          },
+          "dryingAndRipening": {
+            "name": "Trocknung und Nachreife"
+          },
+          "technicalBay": {
+            "name": "Technikbucht"
+          }
+        },
+        "2": {
+          "vegetableHydroponics": {
+            "name": "Gemüsehydroponik",
+            "description": "Blatt- und Fruchtgemüse, kürzeste Umlaufzeiten an Bord"
+          },
+          "fruitTrees": {
+            "name": "Obstbäume in Bodenkultur",
+            "description": "Zwergformen, echtes Substrat statt Nährlösung"
+          },
+          "pollinatorInsectary": {
+            "name": "Insektarium für Bestäubung",
+            "description": "Bienen und Hummeln, eigene Population mit Kryoreserve"
+          },
+          "seedlingNursery": {
+            "name": "Anzucht und Jungpflanzen"
+          },
+          "circulation": {
+            "name": "Erschließung"
+          }
+        },
+        "3": {
+          "algaeReactors": {
+            "name": "Algenreaktoren",
+            "description": "Höchste Flächenausbeute an Bord, aber geschmacklich schwer zu integrieren"
+          },
+          "aquacultureTanks": {
+            "name": "Aquakulturbecken",
+            "description": "Tilapia und Karpfen, gekoppelt an die Nährstoffrückführung"
+          },
+          "insectFarming": {
+            "name": "Insektenzucht",
+            "description": "Mehlwürmer und Grillen, Futter aus Ernteresten"
+          },
+          "culturedMeat": {
+            "name": "Zellkulturfleisch",
+            "description": "Energieintensiv, deshalb rationiert"
+          },
+          "circulationAndPlant": {
+            "name": "Erschließung und Technik"
+          }
+        },
+        "4": {
+          "foodProcessing": {
+            "name": "Lebensmittelverarbeitung",
+            "description": "Mahlen, Pressen, Fermentieren, Konservieren"
+          },
+          "coldStore": {
+            "name": "Kühllager"
+          },
+          "dryStore": {
+            "name": "Trockenlager",
+            "description": "18 Monate Vollversorgung für 1.000 Personen"
+          },
+          "seedPropagation": {
+            "name": "Saatgutvermehrung",
+            "description": "Arbeitsbestand, das eigentliche Archiv liegt in der Kryobank"
+          },
+          "circulation": {
+            "name": "Erschließung"
+          }
+        },
+        "5": {
+          "compostingAndBioreactors": {
+            "name": "Kompostierung und Bioreaktoren",
+            "description": "Aufschluss organischer Reste aus beiden Ringen"
+          },
+          "nutrientRecovery": {
+            "name": "Nährlösungsaufbereitung",
+            "description": "Stickstoff, Phosphor, Kalium und Spurenelemente rückgewinnen"
+          },
+          "mushroomCultures": {
+            "name": "Pilzkulturen in Dunkelzone",
+            "description": "Verwerten Substrat, das für Pflanzen nicht mehr taugt"
+          },
+          "substrateStore": {
+            "name": "Bodenlager und Substrat"
+          },
+          "circulationAndHubAirlock": {
+            "name": "Erschließung und Nabenschleuse"
+          }
+        }
+      }
+    },
+    "section": {
+      "bowShield": {
+        "name": "Bugschild",
+        "role": "Staubschutz, Flugrichtung voraus",
+        "description": "Bei 1 Prozent Lichtgeschwindigkeit trägt ein Staubkorn von 0,1 mm die Energie eines Gewehrgeschosses, und das Schiff durchquert 437 Jahre lang interstellares Medium. Der Schild besteht aus einem Block Wassereis mit vorgelagerten Whipple-Lagen, die einen Treffer in eine Plasmawolke auflösen, bevor er den Hauptblock erreicht. Das Eis wird abgetragen und aus den Vorratstanks nachgeführt. Der schwerste Einzelposten des Schiffs und zugleich die unsicherste Zahl im ganzen Entwurf."
+      },
+      "supplyTanks": {
+        "name": "Vorrats- und Wassertanks",
+        "role": "Reserve, Abschirmung, Nachschub",
+        "description": "Wasser ist dreifach nützlich: Reserve für die geschlossenen Kreisläufe, Strahlungsabschirmung und Nachschub für das abgetragene Bugschild. Die Tanks liegen deshalb vor der Habitatsektion und wirken im Betrieb als zweite Schutzschicht."
+      },
+      "habitatMantle": {
+        "name": "Habitatmantel",
+        "role": "nicht rotierende Außenhülle",
+        "description": "Der Mantel dreht sich nicht mit. Er trägt die Lager der beiden Ringe und dient als äußere Trefferschale. Über den Schalter rechts oben lässt er sich ausblenden."
+      },
+      "ringA": {
+        "name": "Ring A, Wohnen und Gemeinschaft",
+        "role": "5 Decks, 4 Sektoren",
+        "description": "Ein Ringkörper mit 125 m Außenradius, 30 m axialer Breite und 25 m radialer Höhe, aufgeteilt in fünf Decks à 5 m. Bei 1,89 Umdrehungen pro Minute liegen am äußersten Deck 0,50 g an, am innersten 0,42 g. Vier druckdichte Sektoren mit je eigener Luft- und Wasseraufbereitung sorgen dafür, dass ein Brand oder ein Leck nie das ganze Wohnvolumen trifft."
+      },
+      "ringB": {
+        "name": "Ring B, Landwirtschaft",
+        "role": "5 Decks, gegenläufig",
+        "description": "Baugleich mit Ring A, dreht aber gegenläufig, sodass sich die Drehimpulse aufheben und das Schiff ohne Kreiselwiderstand Kurs halten kann. Fünf Decks decken Getreide, Frischkost, Protein, Verarbeitung und Stoffrückführung ab. Pro Person stehen 108 m² Grundfläche zur Verfügung, durch mehrlagige Terrassen ergibt das etwa das Zwei- bis Dreifache an tatsächlicher Anbaufläche."
+      },
+      "centralAxis": {
+        "name": "Zentralachse und Naben",
+        "role": "Verbindung, Schwerelosigkeit, Sturmbunker",
+        "description": "Die durchgehende Achse verbindet alle Sektionen und nimmt die Drehlager der Ringe auf. Aufzüge in den sechs Speichen je Ring führen von der Peripherie in die schwerelose Nabe. Der am stärksten abgeschirmte Abschnitt dient als Sturmbunker bei Strahlungsereignissen."
+      },
+      "cryobank": {
+        "name": "Kryobank und Genarchiv",
+        "role": "genetische Reserve",
+        "description": "Der Grund, warum 1.000 Menschen genügen. Eingelagert sind Gameten und Embryonen von mehreren tausend Spendern, dazu Saatgut, Mikrobenkulturen und tierische Genetik. Damit hängt die genetische Vielfalt nicht mehr an der Größe der lebenden Population, sondern an der Zuverlässigkeit der Kühlung. Der Bestand liegt dreifach redundant in getrennten Abschnitten."
+      },
+      "workshop": {
+        "name": "Werkstatt und Fertigung",
+        "role": "Ersatzteile, Rohstofflager",
+        "description": "Über vier Jahrhunderte kann nichts nachgeliefert werden, jedes Bauteil muss an Bord reproduzierbar sein. Der begrenzende Faktor ist nicht das Werkzeug, sondern die Fertigungskette: Halbleiter in der nötigen Güte selbst herzustellen ist die härteste Anforderung des ganzen Schiffs."
+      },
+      "lifeSupport": {
+        "name": "Lebenserhaltung und Recycling",
+        "role": "Rückfallebene hinter der Biosphäre",
+        "description": "Physikalisch-chemische Aufbereitung als Rückfallebene hinter Ring B. Fällt die Landwirtschaft aus, hält diese Sektion Luft und Wasser allein aufrecht, bis der Ring wieder anläuft. Bei 99 Prozent Rückgewinnung geht pro Jahrhundert immer noch ein messbarer Anteil der Gesamtmasse verloren."
+      },
+      "reactor": {
+        "name": "Reaktorsektion",
+        "role": "Bordenergie",
+        "description": "Zwei getrennte Reaktoren im Wechselbetrieb. Der Dauerbedarf wird von der Pflanzenbeleuchtung in Ring B dominiert, nicht vom Wohnbereich."
+      },
+      "radiators": {
+        "name": "Radiatoren",
+        "role": "Wärmeabgabe",
+        "description": "Im Vakuum lässt sich Wärme nur abstrahlen. Die Flächen liegen im Schatten der Bugstruktur und sind segmentiert, damit ein Leck nicht das ganze Kühlsystem entleert."
+      },
+      "shadowShield": {
+        "name": "Schattenschild",
+        "role": "Trennung Reaktor, Wohnbereich",
+        "description": "Statt den Reaktor komplett zu ummanteln, wird nur der Kegel abgeschirmt, in dem das Habitat liegt. Das spart erheblich Masse, verbietet aber jeden dauerhaften Aufenthalt außerhalb dieses Schattens im hinteren Schiffsdrittel."
+      },
+      "propellantMagazine": {
+        "name": "Treibstoffmagazin",
+        "role": "Puls-Ladungen",
+        "description": "Vorrat und Zuführung der Fusions-Puls-Ladungen. Der Antrieb arbeitet nur in der Beschleunigungsphase der ersten Jahrzehnte, danach dient das Magazin als Lager."
+      },
+      "propulsion": {
+        "name": "Antrieb und Pusherplatte",
+        "role": "Beschleunigung",
+        "description": "Fusions-Puls-Antrieb nach dem Orion-Prinzip. Bei 1.000 km/s Austrittsgeschwindigkeit braucht allein die Beschleunigung auf 1 Prozent c ein Massenverhältnis von 20, also rund 10 Millionen Tonnen Treibstoff. Mit dem gleichen Antrieb auch zu bremsen verlangte ein Verhältnis von 400 und ist ausgeschlossen."
+      },
+      "magsail": {
+        "name": "Magsegel",
+        "role": "Bremsen am Ziel",
+        "description": "Eine supraleitende Schleife erzeugt ein Magnetfeld, das gegen das interstellare Plasma arbeitet und daraus Bremskraft gewinnt, ohne Treibstoff mitzuführen. Ohne dieses Bauteil ist die Mission rechnerisch nicht durchführbar, gleichzeitig ist es das am wenigsten erprobte System an Bord. Das Konzept stammt von Zubrin und Andrews (1989) und wurde nie geflogen."
+      }
+    },
+    "figure": {
+      "frontalArea": "Frontfläche",
+      "iceThickness": "Eisdicke",
+      "whippleLayers": "Whipple-Lagen",
+      "mass": "Masse",
+      "volume": "Volumen",
+      "proteinSources": "Proteinquellen",
+      "diameter": "Durchmesser",
+      "spokesPerRing": "Speichen je Ring",
+      "donorsMinimum": "Spender, mindestens",
+      "donorsMaximum": "Spender, höchstens",
+      "storageTemperature": "Lagertemperatur",
+      "depots": "Depots",
+      "stockMass": "Rohstoffvorrat",
+      "designCapacity": "Auslegung",
+      "closureMinimum": "Schließungsgrad, mindestens",
+      "autonomy": "Autark",
+      "continuousPower": "Dauerleistung",
+      "reactorUnits": "Einheiten",
+      "area": "Fläche",
+      "temperature": "Temperatur",
+      "segments": "Segmente",
+      "thickness": "Dicke",
+      "pusherPlateDiameter": "Plattendurchmesser",
+      "exhaustVelocity": "Austrittsgeschwindigkeit"
+    }
+  },
+  "flight": {
+    "body": {
+      "sun": {
+        "name": "Sonne"
+      },
+      "mercury": {
+        "name": "Merkur"
+      },
+      "venus": {
+        "name": "Venus"
+      },
+      "earth": {
+        "name": "Erde"
+      },
+      "mars": {
+        "name": "Mars"
+      },
+      "jupiter": {
+        "name": "Jupiter"
+      },
+      "saturn": {
+        "name": "Saturn"
+      },
+      "uranus": {
+        "name": "Uranus"
+      },
+      "neptune": {
+        "name": "Neptun"
+      },
+      "proxima": {
+        "name": "Proxima"
+      },
+      "proximaD": {
+        "name": "Proxima d"
+      },
+      "proximaB": {
+        "name": "Proxima b"
+      },
+      "alphaCentauriA": {
+        "name": "α Cen A"
+      },
+      "alphaCentauriB": {
+        "name": "α Cen B"
+      }
+    },
+    "chapter": {
+      "departure": {
+        "title": "Schleppphase",
+        "text": "Solarelektrischer Schlepp aus dem Erde-Mond-System. Der Pulsantrieb darf hier noch nicht zünden."
+      },
+      "planetaryZone": {
+        "title": "Planetenzone",
+        "text": "Schub 3,17 mm/s². Die Bahn führt 45 Grad unter die Ekliptik, die Planetenbahnen bleiben zur Seite."
+      },
+      "kuiperBelt": {
+        "title": "Kuipergürtel und Heliopause",
+        "text": "Neptunbahn nach 1,7 Jahren bei 169 km/s. Bei 120 AE endet der Einfluss des Sonnenwinds."
+      },
+      "interstellarMedium": {
+        "title": "Interstellares Medium",
+        "text": "Wasserstoff trifft frontal mit 47 keV je Proton, 3 × 10¹¹ pro m² und Sekunde. Dafür sitzt das Eisschild vorn."
+      },
+      "innerOortCloud": {
+        "title": "Innere Oortwolke",
+        "text": "Die letzten Puls-Ladungen. Brennschluss bei 9.487 AE nach dreißig Jahren."
+      },
+      "cruise": {
+        "title": "Marschfahrt",
+        "text": "Antriebslos für 385 Jahre. Voraus steht nicht das Ziel, sondern α Cen A und B: Proxima selbst hat aus dieser Entfernung nur Größenklasse 11 und ist mit bloßem Auge unsichtbar."
+      },
+      "outerOortCloud": {
+        "title": "Äußere Oortwolke",
+        "text": "Bis etwa 100.000 AE reicht die Gravitationsbindung an die Sonne. Danach hält nichts mehr."
+      },
+      "betweenStars": {
+        "title": "Zwischen den Sternen",
+        "text": "Halbstrecke bei 2,12 Lichtjahren nach rund 227 Jahren. Wechsel von der Lokalen Wolke in die G-Wolke."
+      },
+      "proximaVisible": {
+        "title": "Proxima wird sichtbar",
+        "text": "Bei 24.800 AE Restweg erreicht Proxima Größenklasse 6. Zum ersten Mal seit dem Start sieht die Besatzung ihr Ziel mit bloßem Auge, nach etwa 400 Jahren."
+      },
+      "braking": {
+        "title": "Bremsphase",
+        "text": "Magsegel ausgefahren, 380 m Durchmesser. Fünfzig Jahre Bremsweg über 15.800 AE. α Cen A und B stehen 12.058 AE seitlich und leuchten mit Größenklasse -6,8."
+      },
+      "approach": {
+        "title": "Anflug",
+        "text": "Proxima ist ein roter Zwerg mit 0,15 Sonnenradien und 0,0017 Sonnenleuchtkraft. Die habitable Zone liegt zwischen 0,042 und 0,082 AE, gezeichnet als grüne Doppellinie."
+      },
+      "arrival": {
+        "title": "Ankunft bei Proxima b",
+        "text": "Nach 466 Jahren und achtzehn Generationen. Proxima b umkreist den Stern in 11,2 Tagen, Proxima d in 5,1 Tagen. Beide wurden 2025 mit NIRPS bestätigt, der frühere Kandidat Proxima c durch dieselben Messungen widerlegt."
+      }
+    }
   }
 }

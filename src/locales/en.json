@@ -31,10 +31,519 @@
     "year": "yr",
     "kilometrePerSecond": "km/s",
     "lightYear": "ly",
-    "persons": "persons"
+    "persons": "persons",
+    "cubicMetre": "m³",
+    "celsius": "°C",
+    "kelvin": "K",
+    "megawatt": "MW",
+    "percent": "%",
+    "day": "days"
   },
   "pending": {
     "title": "Not implemented yet",
     "body": "This view is built in TASK-001, the merge of the ship and the flight path."
+  },
+  "ship": {
+    "deck": {
+      "ringA": {
+        "1": {
+          "name": "Deck 1, living quarters",
+          "use": "Sleeping and private life",
+          "note": "The outermost deck has the highest gravity and is therefore reserved for sleeping, because bone and muscle loss is compensated least of all while lying down. The outer wall of this deck is both pressure hull and shielding water tank."
+        },
+        "2": {
+          "name": "Deck 2, community",
+          "use": "Eating, assembly, recreation",
+          "note": "The social centre of the ring. The park is not a luxury: isolation research from Concordia and Mir shows that freely accessible, open and planted areas are the single most effective factor against the typical overwintering syndromes."
+        },
+        "3": {
+          "name": "Deck 3, work and care",
+          "use": "Education, medicine, administration",
+          "note": "On a generation ship, education is not a side issue but the system that carries operational capability across 18 generations. If the training chain fails for a single critical discipline, that knowledge is lost for good."
+        },
+        "4": {
+          "name": "Deck 4, technical systems",
+          "use": "Air, water, shielding",
+          "note": "Each of the four sectors has its own complete air and water processing. One sector can be sealed off and the remaining three keep supplying the crew, though with 25 percent less reserve."
+        },
+        "5": {
+          "name": "Deck 5, hub connection",
+          "use": "Storage, open space, reserve",
+          "note": "The innermost deck has the lowest gravity and the shortest connection to the weightless hub. Almost a third of the floor is deliberately left empty: requirements change over four centuries, and a population that cannot rebuild is stuck with the design of 2120."
+        }
+      },
+      "ringB": {
+        "1": {
+          "name": "Deck 1, grain",
+          "use": "Staple food",
+          "note": "Grain supplies most of the calories and therefore sits on the deck with the highest gravity, because water transport and stalk stability work less well at low g. The terraces are stacked in several layers, and the area given is floor area, not growing area."
+        },
+        "2": {
+          "name": "Deck 2, vegetables and fruit",
+          "use": "Fresh produce",
+          "note": "The insectary is not a marginal detail. Without pollinators carried along, every fruit blossom would have to be pollinated by hand, and the working time this takes exceeds what a crew of 1,000 people can sustain."
+        },
+        "3": {
+          "name": "Deck 3, protein",
+          "use": "Protein production",
+          "note": "Four independent protein sources instead of one large one. The reason is not variety on the menu but resilience: an outbreak in the aquaculture must not take out the entire protein supply."
+        },
+        "4": {
+          "name": "Deck 4, processing and stores",
+          "use": "Preservation",
+          "note": "The stored stock is the actual safety reserve of the mission. It is sized for 18 months of full supply, long enough to bridge a complete failure of one agricultural sector and to rebuild the crops."
+        },
+        "5": {
+          "name": "Deck 5, closed-loop systems",
+          "use": "Material recycling",
+          "note": "This is where the loop closes: everything that arises as waste on the ship becomes nutrient for decks 1 to 3. How tightly this deck closes decides how much mass the ship loses for good over 466 years."
+        }
+      }
+    },
+    "room": {
+      "ringA": {
+        "1": {
+          "dwellingBlockA": {
+            "name": "Dwelling units, block A",
+            "description": "25 units of 52 m² each, sized for 3 to 4 people"
+          },
+          "dwellingBlockB": {
+            "name": "Dwelling units, block B",
+            "description": "25 units, a mirror image of block A"
+          },
+          "dwellingBlockC": {
+            "name": "Dwelling units, block C",
+            "description": "25 units, convertible into larger or smaller ones"
+          },
+          "communalKitchen": {
+            "name": "Communal kitchen and wash house",
+            "description": "Four units per residential group, saving pipe runs and water circulation"
+          },
+          "stairAndLiftNode": {
+            "name": "Stair and lift node",
+            "description": "Two nodes per sector, linking all five decks up to the spoke"
+          },
+          "sectorAirlock": {
+            "name": "Sector airlock",
+            "description": "Pressure-tight passage to the neighbouring sector, locked in an emergency"
+          },
+          "storageAndUtilities": {
+            "name": "Storage and building services",
+            "description": "Local ventilation, water distribution, personal storage"
+          }
+        },
+        "2": {
+          "canteen": {
+            "name": "Canteen and kitchen",
+            "description": "Two sittings, with a direct link to the lift to ring B"
+          },
+          "assemblyHall": {
+            "name": "Assembly hall",
+            "description": "Holds a whole sector, and doubles as emergency shelter"
+          },
+          "sportsHall": {
+            "name": "Sports and exercise hall",
+            "description": "Mandatory at 0.5 g, resistance training against bone loss"
+          },
+          "park": {
+            "name": "Planted park",
+            "description": "Open green space over the full sector length, a line of sight of 188 m"
+          },
+          "library": {
+            "name": "Library and archive access",
+            "description": "Terminals to the data archive, plus a physical reference library"
+          },
+          "hobbyWorkshops": {
+            "name": "Hobby workshops",
+            "description": "Not production-critical, deliberately kept apart from manufacturing"
+          },
+          "sanitaryAndChangingRooms": {
+            "name": "Sanitary and changing rooms"
+          },
+          "circulationAndAncillary": {
+            "name": "Circulation and ancillary rooms"
+          }
+        },
+        "3": {
+          "school": {
+            "name": "School and training",
+            "description": "Continuous from infancy to professional qualification, 3 to 4 holders per speciality"
+          },
+          "infirmary": {
+            "name": "Infirmary",
+            "description": "Surgery, isolation ward, dentistry, obstetrics"
+          },
+          "laboratories": {
+            "name": "Laboratories",
+            "description": "Diagnostics, water analysis, materials testing"
+          },
+          "controlAndAdministration": {
+            "name": "Control room and administration",
+            "description": "Secondary control room, the main one sits in the hub"
+          },
+          "precisionWorkshops": {
+            "name": "Precision workshops",
+            "description": "Repair of onboard equipment, separate from main manufacturing"
+          },
+          "consumablesStore": {
+            "name": "Consumables store"
+          },
+          "circulationAndAncillary": {
+            "name": "Circulation and ancillary rooms"
+          }
+        },
+        "4": {
+          "airProcessing": {
+            "name": "Air processing",
+            "description": "CO₂ capture, trace gas filters, 30 days of oxygen buffer"
+          },
+          "waterProcessing": {
+            "name": "Water processing",
+            "description": "Grey and black water kept separate, recovery above 99 percent"
+          },
+          "shieldingWaterTanks": {
+            "name": "Shielding water tanks",
+            "description": "Against the outer wall, 0.5 m water equivalent against cosmic radiation"
+          },
+          "powerDistribution": {
+            "name": "Power distribution"
+          },
+          "materialRecovery": {
+            "name": "Material recovery",
+            "description": "Hands the residues over to ring B"
+          },
+          "maintenanceGalleries": {
+            "name": "Maintenance galleries"
+          }
+        },
+        "5": {
+          "spokeHead": {
+            "name": "Spoke head with lift",
+            "description": "Six spokes per ring, about 90 seconds of travel to the hub"
+          },
+          "runningTrack": {
+            "name": "Running track and open space",
+            "description": "An unbroken track around the whole ring, a lap of 785 m"
+          },
+          "longTermStore": {
+            "name": "Long-term store",
+            "description": "Rarely needed material, easier to move at low gravity"
+          },
+          "hubAirlock": {
+            "name": "Hub airlock"
+          },
+          "expansionReserve": {
+            "name": "Expansion reserve",
+            "description": "Left unfinished, kept free for later generations"
+          }
+        }
+      },
+      "ringB": {
+        "1": {
+          "grainTerracesNorth": {
+            "name": "Grain terraces, north",
+            "description": "Wheat and rice in rotation, stacked four layers deep"
+          },
+          "grainTerracesSouth": {
+            "name": "Grain terraces, south",
+            "description": "Sowing offset in time, so the harvest is spread across the year"
+          },
+          "irrigationAndNutrients": {
+            "name": "Irrigation and nutrient solution",
+            "description": "A closed circuit, losses below 0.5 percent per cycle"
+          },
+          "harvestGallery": {
+            "name": "Harvest and transport gallery",
+            "description": "Direct route to the lift towards processing on deck 4"
+          },
+          "dryingAndRipening": {
+            "name": "Drying and after-ripening"
+          },
+          "technicalBay": {
+            "name": "Technical bay"
+          }
+        },
+        "2": {
+          "vegetableHydroponics": {
+            "name": "Vegetable hydroponics",
+            "description": "Leaf and fruit vegetables, the shortest cycle times on board"
+          },
+          "fruitTrees": {
+            "name": "Fruit trees in soil",
+            "description": "Dwarf varieties, real substrate instead of nutrient solution"
+          },
+          "pollinatorInsectary": {
+            "name": "Insectary for pollination",
+            "description": "Bees and bumblebees, a population of their own with a cryo reserve"
+          },
+          "seedlingNursery": {
+            "name": "Propagation and seedlings"
+          },
+          "circulation": {
+            "name": "Circulation"
+          }
+        },
+        "3": {
+          "algaeReactors": {
+            "name": "Algae reactors",
+            "description": "The highest yield per area on board, but hard to work into meals"
+          },
+          "aquacultureTanks": {
+            "name": "Aquaculture tanks",
+            "description": "Tilapia and carp, coupled to the nutrient return"
+          },
+          "insectFarming": {
+            "name": "Insect farming",
+            "description": "Mealworms and crickets, fed on crop residues"
+          },
+          "culturedMeat": {
+            "name": "Cultured meat",
+            "description": "Energy-intensive, and therefore rationed"
+          },
+          "circulationAndPlant": {
+            "name": "Circulation and plant"
+          }
+        },
+        "4": {
+          "foodProcessing": {
+            "name": "Food processing",
+            "description": "Milling, pressing, fermenting, preserving"
+          },
+          "coldStore": {
+            "name": "Cold store"
+          },
+          "dryStore": {
+            "name": "Dry store",
+            "description": "18 months of full supply for 1,000 people"
+          },
+          "seedPropagation": {
+            "name": "Seed propagation",
+            "description": "The working stock, the actual archive sits in the cryo bank"
+          },
+          "circulation": {
+            "name": "Circulation"
+          }
+        },
+        "5": {
+          "compostingAndBioreactors": {
+            "name": "Composting and bioreactors",
+            "description": "Breaks down organic residues from both rings"
+          },
+          "nutrientRecovery": {
+            "name": "Nutrient solution processing",
+            "description": "Recovers nitrogen, phosphorus, potassium and trace elements"
+          },
+          "mushroomCultures": {
+            "name": "Mushroom cultures in the dark zone",
+            "description": "They use up substrate that is no longer good for plants"
+          },
+          "substrateStore": {
+            "name": "Soil and substrate store"
+          },
+          "circulationAndHubAirlock": {
+            "name": "Circulation and hub airlock"
+          }
+        }
+      }
+    },
+    "section": {
+      "bowShield": {
+        "name": "Bow shield",
+        "role": "Dust protection, facing the flight direction",
+        "description": "At 1 percent of the speed of light a dust grain of 0.1 mm carries the energy of a rifle bullet, and the ship crosses interstellar medium for 437 years. The shield is a block of water ice with Whipple layers in front of it that break an impact into a cloud of plasma before it reaches the main block. The ice ablates away and is replenished from the supply tanks. The heaviest single item of the ship and at the same time the most uncertain figure in the whole design."
+      },
+      "supplyTanks": {
+        "name": "Supply and water tanks",
+        "role": "Reserve, shielding, replenishment",
+        "description": "Water is useful three times over: reserve for the closed loops, radiation shielding, and replenishment for the ablated bow shield. The tanks therefore sit ahead of the habitat section and act as a second protective layer in operation."
+      },
+      "habitatMantle": {
+        "name": "Habitat mantle",
+        "role": "non-rotating outer shell",
+        "description": "The mantle does not turn with the rings. It carries their bearings and serves as the outer impact shell. The switch at the top right hides it."
+      },
+      "ringA": {
+        "name": "Ring A, living and community",
+        "role": "5 decks, 4 sectors",
+        "description": "A ring body with an outer radius of 125 m, an axial width of 30 m and a radial height of 25 m, divided into five decks of 5 m each. At 1.89 revolutions per minute the outermost deck sits at 0.50 g, the innermost at 0.42 g. Four pressure-tight sectors, each with its own air and water treatment, keep a fire or a leak from ever reaching the whole living volume."
+      },
+      "ringB": {
+        "name": "Ring B, agriculture",
+        "role": "5 decks, counter-rotating",
+        "description": "Identical in build to Ring A, but turning the other way, so the angular momenta cancel and the ship can hold course without gyroscopic resistance. Five decks cover grain, fresh food, protein, processing and material recycling. Each person has 108 m² of floor area, and multi-layer terraces turn that into roughly two to three times as much actual growing area."
+      },
+      "centralAxis": {
+        "name": "Central axis and hubs",
+        "role": "Connection, weightlessness, storm shelter",
+        "description": "The continuous axis connects all sections and takes the rotation bearings of the rings. Lifts in the six spokes of each ring lead from the rim into the weightless hub. Its most heavily shielded stretch serves as the storm shelter during radiation events."
+      },
+      "cryobank": {
+        "name": "Cryobank and gene archive",
+        "role": "genetic reserve",
+        "description": "The reason 1,000 people are enough. Stored here are gametes and embryos from several thousand donors, along with seed, microbial cultures and animal genetics. Genetic diversity therefore no longer depends on the size of the living population but on the reliability of the cooling. The holdings lie in three redundant copies in separate compartments."
+      },
+      "workshop": {
+        "name": "Workshop and fabrication",
+        "role": "Spare parts, raw material store",
+        "description": "Across four centuries nothing can be resupplied, so every component has to be reproducible on board. The limiting factor is not the tool but the production chain: making semiconductors of the required quality on board is the hardest demand of the whole ship."
+      },
+      "lifeSupport": {
+        "name": "Life support and recycling",
+        "role": "Fallback layer behind the biosphere",
+        "description": "Physical and chemical processing as the fallback behind Ring B. If agriculture fails, this section keeps air and water going on its own until the ring starts up again. At 99 percent recovery a measurable share of the total mass is still lost every century."
+      },
+      "reactor": {
+        "name": "Reactor section",
+        "role": "On-board power",
+        "description": "Two separate reactors in alternating operation. The continuous demand is dominated by the plant lighting in Ring B, not by the living quarters."
+      },
+      "radiators": {
+        "name": "Radiators",
+        "role": "Heat rejection",
+        "description": "In vacuum heat can only be radiated away. The surfaces lie in the shadow of the bow structure and are segmented so that one leak does not drain the whole cooling system."
+      },
+      "shadowShield": {
+        "name": "Shadow shield",
+        "role": "Separation of reactor and living quarters",
+        "description": "Instead of jacketing the reactor completely, only the cone that holds the habitat is shielded. That saves considerable mass, but it rules out any permanent stay outside this shadow in the rear third of the ship."
+      },
+      "propellantMagazine": {
+        "name": "Propellant magazine",
+        "role": "Pulse charges",
+        "description": "Store and feed for the fusion pulse charges. The drive works only during the acceleration phase of the first decades, after that the magazine serves as storage."
+      },
+      "propulsion": {
+        "name": "Drive and pusher plate",
+        "role": "Acceleration",
+        "description": "Fusion pulse drive on the Orion principle. At an exhaust velocity of 1,000 km/s, the acceleration to 1 percent of c alone needs a mass ratio of 20, that is around 10 million tonnes of propellant. Braking with the same drive would demand a ratio of 400 and is ruled out."
+      },
+      "magsail": {
+        "name": "Magsail",
+        "role": "Braking at the destination",
+        "description": "A superconducting loop creates a magnetic field that works against the interstellar plasma and draws braking force from it without carrying any propellant. Without this component the mission does not add up, and at the same time it is the least proven system on board. The concept comes from Zubrin and Andrews (1989) and has never been flown."
+      }
+    },
+    "figure": {
+      "frontalArea": "Frontal area",
+      "iceThickness": "Ice thickness",
+      "whippleLayers": "Whipple layers",
+      "mass": "Mass",
+      "volume": "Volume",
+      "proteinSources": "Protein sources",
+      "diameter": "Diameter",
+      "spokesPerRing": "Spokes per ring",
+      "donorsMinimum": "Donors, minimum",
+      "donorsMaximum": "Donors, maximum",
+      "storageTemperature": "Storage temperature",
+      "depots": "Depots",
+      "stockMass": "Raw material stock",
+      "designCapacity": "Design capacity",
+      "closureMinimum": "Loop closure, minimum",
+      "autonomy": "Autonomous",
+      "continuousPower": "Continuous power",
+      "reactorUnits": "Units",
+      "area": "Area",
+      "temperature": "Temperature",
+      "segments": "Segments",
+      "thickness": "Thickness",
+      "pusherPlateDiameter": "Pusher plate diameter",
+      "exhaustVelocity": "Exhaust velocity"
+    }
+  },
+  "flight": {
+    "body": {
+      "sun": {
+        "name": "Sun"
+      },
+      "mercury": {
+        "name": "Mercury"
+      },
+      "venus": {
+        "name": "Venus"
+      },
+      "earth": {
+        "name": "Earth"
+      },
+      "mars": {
+        "name": "Mars"
+      },
+      "jupiter": {
+        "name": "Jupiter"
+      },
+      "saturn": {
+        "name": "Saturn"
+      },
+      "uranus": {
+        "name": "Uranus"
+      },
+      "neptune": {
+        "name": "Neptune"
+      },
+      "proxima": {
+        "name": "Proxima"
+      },
+      "proximaD": {
+        "name": "Proxima d"
+      },
+      "proximaB": {
+        "name": "Proxima b"
+      },
+      "alphaCentauriA": {
+        "name": "α Cen A"
+      },
+      "alphaCentauriB": {
+        "name": "α Cen B"
+      }
+    },
+    "chapter": {
+      "departure": {
+        "title": "Tow phase",
+        "text": "Solar electric tow out of the earth and moon system. The pulse drive is not allowed to fire here yet."
+      },
+      "planetaryZone": {
+        "title": "Planetary zone",
+        "text": "Thrust 3.17 mm/s². The path runs 45 degrees below the ecliptic, the planetary orbits stay off to the side."
+      },
+      "kuiperBelt": {
+        "title": "Kuiper belt and heliopause",
+        "text": "The orbit of Neptune after 1.7 years at 169 km/s. At 120 AU the influence of the solar wind ends."
+      },
+      "interstellarMedium": {
+        "title": "Interstellar medium",
+        "text": "Hydrogen hits head on at 47 keV per proton, 3 × 10¹¹ per m² and second. That is what the ice shield up front is for."
+      },
+      "innerOortCloud": {
+        "title": "Inner Oort cloud",
+        "text": "The last pulse charges. Burnout at 9,487 AU after thirty years."
+      },
+      "cruise": {
+        "title": "Cruise",
+        "text": "Unpowered for 385 years. What stands ahead is not the target but α Cen A and B: from this distance Proxima itself is only magnitude 11 and invisible to the naked eye."
+      },
+      "outerOortCloud": {
+        "title": "Outer Oort cloud",
+        "text": "The gravitational hold of the sun reaches out to about 100,000 AU. Beyond that nothing holds any more."
+      },
+      "betweenStars": {
+        "title": "Between the stars",
+        "text": "Half way at 2.12 light years after about 227 years. Crossing from the Local Cloud into the G Cloud."
+      },
+      "proximaVisible": {
+        "title": "Proxima becomes visible",
+        "text": "With 24,800 AU to go Proxima reaches magnitude 6. For the first time since departure the crew sees its target with the naked eye, after about 400 years."
+      },
+      "braking": {
+        "title": "Braking phase",
+        "text": "Magsail deployed, 380 m across. Fifty years of braking over 15,800 AU. α Cen A and B stand 12,058 AU off to the side and shine at magnitude -6.8."
+      },
+      "approach": {
+        "title": "Approach",
+        "text": "Proxima is a red dwarf of 0.15 solar radii and 0.0017 solar luminosity. The habitable zone lies between 0.042 and 0.082 AU, drawn as the green double line."
+      },
+      "arrival": {
+        "title": "Arrival at Proxima b",
+        "text": "After 466 years and eighteen generations. Proxima b circles the star in 11.2 days, Proxima d in 5.1 days. Both were confirmed with NIRPS in 2025, the earlier candidate Proxima c disproved by the same measurements."
+      }
+    }
   }
 }

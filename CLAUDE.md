@@ -168,14 +168,15 @@ Koordinaten in Ekliptikkoordinaten, hergeleitet aus RA/Dec:
 | Objekt | ekl. Breite | ekl. Länge | Distanz | Einheitsvektor (x, y, z) |
 |---|---|---|---|---|
 | Proxima Centauri | -44,76° | 239,11° | 4,2465 Lj = 268.553 AE | (-0,36447, -0,60934, -0,70418) |
-| α Cen AB | -42,59° | 239,48° | 4,3441 Lj = 274.719 AE | (-0,37386, -0,63417, -0,67680) |
+| α Cen AB | -42,59° | 239,48° | 4,3441 Lj = 274.726 AE | (-0,37386, -0,63417, -0,67680) |
 
 Winkelabstand am Himmel 2,185°, räumlicher Abstand Proxima zu AB 12.058 AE = 0,1907 Lj.
 Die Flugbahn führt 45 Grad unter die Ekliptik, deshalb kommt kein Planet in ihre Nähe.
 
 **Proxima:** roter Zwerg, Radius 107.000 km (0,154 R☉), absolute Helligkeit 15,60 mag.
 Von der Erde aus 11,17 mag, also mit bloßem Auge unsichtbar. Größenklasse 6 wird erst
-bei 24.798 AE Restweg erreicht, das ist nach rund 380 Flugjahren. Bis dahin ist der
+bei 24.798 AE Restweg erreicht, das ist nach 400 Jahren ab der Zündung, auf der
+Missionsuhr nach 402. Die früher hier notierten 380 Jahre waren falsch. Bis dahin ist der
 helle Punkt voraus immer α Cen A, nicht das Ziel.
 
 **Planeten (Stand 2025, NIRPS-Bestätigung):**
