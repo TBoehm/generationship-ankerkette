@@ -11,6 +11,7 @@ import {
   ellipticOrbitPosition,
 } from '../../../domain/usecases/flightGeometry.js';
 import { bodyColor, emissiveColor } from './palette.js';
+import { createSurfaceGeometry } from './surfaces.js';
 import { toScene } from './coordinates.js';
 import {
   ALPHA_CENTAURI_B_PLANE,
@@ -29,20 +30,15 @@ import {
  * this path the sphere is far below one pixel and the glow is all there is
  * to see.
  *
- * The sphere geometry and the one point of the glow are shared by every body
- * and every glow. Only the materials differ, since the glow carries its size
- * and its brightness in the material.
+ * The single point of the glow is shared by every body, since the glow carries
+ * its size and its brightness in the material. The spheres are not shared: each
+ * one bakes its own procedural surface into a colour attribute, so a gas giant
+ * gets its bands and a rocky world its basins without a single image file.
  */
-const SPHERE_SEGMENTS = 28;
-const SPHERE_RINGS = 18;
 const SURFACE_ROUGHNESS = 0.8;
 const SURFACE_METALNESS = 0.05;
 const GLOW_SIZE = 4;
 const GLOW_OPACITY = 0.9;
-
-function sphereGeometry(resources) {
-  return resources.geometry(new THREE.SphereGeometry(1, SPHERE_SEGMENTS, SPHERE_RINGS));
-}
 
 function pointGeometry(resources) {
   const geometry = new THREE.BufferGeometry();
@@ -63,9 +59,15 @@ function createBody({ definition, resources, geometries, orbit = null }) {
     color: bodyColor(definition.colorKey),
     roughness: SURFACE_ROUGHNESS,
     metalness: SURFACE_METALNESS,
+    // The procedural shading rides in the geometry, one grey per vertex, and
+    // only scales the palette colour. Tinting is the palette's business.
+    vertexColors: true,
   });
   if (emissive !== null) surface.emissive.setHex(emissive);
-  const mesh = new THREE.Mesh(geometries.sphere, resources.material(surface, 1));
+  const mesh = new THREE.Mesh(
+    createSurfaceGeometry(definition.id, resources),
+    resources.material(surface, 1)
+  );
   const glow = new THREE.Points(
     geometries.point,
     resources.material(
@@ -97,7 +99,7 @@ function createBody({ definition, resources, geometries, orbit = null }) {
 }
 
 export function createBodies(resources) {
-  const geometries = { sphere: sphereGeometry(resources), point: pointGeometry(resources) };
+  const geometries = { point: pointGeometry(resources) };
   const group = new THREE.Group();
   group.name = 'bodies';
 

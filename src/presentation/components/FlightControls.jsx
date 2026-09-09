@@ -8,6 +8,8 @@ const CAMERA_MODES = ['chase', 'system', 'front', 'back'];
 const SLIDER_STEP = 0.00005;
 
 export default function FlightControls({
+  focusBody,
+  onReleaseFocus,
   distance,
   playing,
   cameraMode,
@@ -28,6 +30,16 @@ export default function FlightControls({
         <div>
           <div className="flight-controls__chapter-title">{t(chapter.titleKey)}</div>
           <p className="flight-controls__chapter-text">{t(chapter.textKey)}</p>
+        </div>
+      ) : null}
+
+      {focusBody ? (
+        <div className="flight-controls__focus">
+          <span className="flight-controls__focus-label">{t('flight.circling')}</span>
+          <span className="flight-controls__focus-name">{t(focusBody.nameKey)}</span>
+          <button type="button" className="flight-controls__chip" onClick={onReleaseFocus}>
+            {t('flight.release')}
+          </button>
         </div>
       ) : null}
 

@@ -564,7 +564,9 @@
     "labels": {
       "on": "Names on",
       "off": "Names off"
-    }
+    },
+    "circling": "Circling",
+    "release": "Release"
   },
   "focus": {
     "ship": "Ship",

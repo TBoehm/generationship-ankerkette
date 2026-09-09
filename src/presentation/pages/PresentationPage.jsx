@@ -40,6 +40,7 @@ export default function PresentationPage() {
   const [cameraMode, setCameraMode] = useState('chase');
   const [boostSizes, setBoostSizes] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
+  const [focusBody, setFocusBody] = useState(null);
 
   /**
    * Everything the user chose before the scene finished loading has to be
@@ -50,7 +51,13 @@ export default function PresentationPage() {
    */
   const onReady = useCallback((stage) => {
     stageRef.current = stage;
-    stage.onSelect((picked) => setSelection((current) => select(current, picked)));
+    stage.onSelect((picked) => {
+      // The journey reports bodies, the ship reports sections and decks. They
+      // are two different kinds of selection and must not be fed to the same
+      // state machine, which would silently drop whichever it did not know.
+      if (picked && picked.kind === 'body') setFocusBody(picked);
+      else setSelection((current) => select(current, picked));
+    });
     const settings = settingsRef.current;
     stage.setFocus(settings.focus);
     stage.setSelection(settings.selection);
@@ -58,9 +65,18 @@ export default function PresentationPage() {
     stage.setCameraMode(settings.cameraMode);
     stage.setBoostSizes(settings.boostSizes);
     stage.setShowLabels(settings.showLabels);
+    stage.setFocusBody(settings.focusBody ? settings.focusBody.id : null);
   }, []);
 
-  settingsRef.current = { focus, selection, distance, cameraMode, boostSizes, showLabels };
+  settingsRef.current = {
+    focus,
+    selection,
+    distance,
+    cameraMode,
+    boostSizes,
+    showLabels,
+    focusBody,
+  };
 
   const withStage = (apply) => {
     const stage = stageRef.current;
@@ -73,6 +89,10 @@ export default function PresentationPage() {
   useEffect(() => withStage((stage) => stage.setCameraMode(cameraMode)), [cameraMode]);
   useEffect(() => withStage((stage) => stage.setBoostSizes(boostSizes)), [boostSizes]);
   useEffect(() => withStage((stage) => stage.setShowLabels(showLabels)), [showLabels]);
+  useEffect(
+    () => withStage((stage) => stage.setFocusBody(focusBody ? focusBody.id : null)),
+    [focusBody]
+  );
 
   useEffect(() => setFocus(focusForPath(pathname)), [pathname]);
 
@@ -122,6 +142,8 @@ export default function PresentationPage() {
         <div className="presentation__dock">
           {focus === 'flight' ? (
             <FlightControls
+              focusBody={focusBody}
+              onReleaseFocus={() => setFocusBody(null)}
               distance={distance}
               playing={playing}
               cameraMode={cameraMode}

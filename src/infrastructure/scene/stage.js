@@ -243,6 +243,7 @@ export function createStage({
     handleTap: (x, y) => inputScene().handleTap(x, y, (selection) => emit('select', selection)),
 
     setDistance: (au) => scenes.flight.setDistance(au),
+    setFocusBody: (id) => scenes.flight.setFocusBody(id),
     setCameraMode: (mode) => scenes.flight.setCameraMode(mode),
     setBoostSizes: (on) => scenes.flight.setBoostSizes(on),
     setShowLabels: (on) => scenes.flight.setShowLabels(on),

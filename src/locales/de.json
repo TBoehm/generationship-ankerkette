@@ -564,7 +564,9 @@
     "labels": {
       "on": "Namen an",
       "off": "Namen aus"
-    }
+    },
+    "circling": "Umkreist",
+    "release": "Loslassen"
   },
   "focus": {
     "ship": "Schiff",

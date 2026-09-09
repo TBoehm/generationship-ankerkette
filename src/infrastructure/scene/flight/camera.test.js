@@ -2,7 +2,13 @@ import * as THREE from 'three';
 import { afterEach, describe, expect, it } from 'vitest';
 import { mountFlightScene } from './testing.js';
 import { toScene } from './coordinates.js';
-import { INITIAL_ORBIT, INITIAL_SYSTEM_DISTANCE } from './camera.js';
+import {
+  FOCUS_ORBIT_LIMITS,
+  INITIAL_ORBIT,
+  INITIAL_SYSTEM_DISTANCE,
+  createFlightCamera,
+  placeCamera,
+} from './camera.js';
 import { DESTINATIONS } from '../../../domain/constants/starSystem.js';
 import {
   FLIGHT_ORBIT_LIMITS,
@@ -163,5 +169,56 @@ describe('drag and dolly', () => {
     scene.setCameraMode('nothing');
     expect(scene.root.getObjectByName('ship-proxy').visible).toBe(true);
     expect(scene.camera.position.length()).toBeCloseTo(INITIAL_ORBIT.distance, 6);
+  });
+});
+
+describe('orbiting a chosen target', () => {
+  it('still orbits the origin when no target is given', () => {
+    const camera = createFlightCamera();
+    placeCamera(camera, { mode: 'chase', orbit: INITIAL_ORBIT, heading });
+    expect(camera.position.length()).toBeCloseTo(INITIAL_ORBIT.distance, 6);
+  });
+
+  it('orbits the given point at the given distance', () => {
+    const camera = createFlightCamera();
+    const target = new THREE.Vector3(12, -3, 40);
+    placeCamera(camera, { mode: 'chase', orbit: INITIAL_ORBIT, heading, target });
+    expect(camera.position.distanceTo(target)).toBeCloseTo(INITIAL_ORBIT.distance, 6);
+  });
+
+  it('looks at the target rather than past it', () => {
+    const camera = createFlightCamera();
+    const target = new THREE.Vector3(12, -3, 40);
+    placeCamera(camera, { mode: 'chase', orbit: INITIAL_ORBIT, heading, target });
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    const toTarget = target.clone().sub(camera.position).normalize();
+    expect(forward.dot(toTarget)).toBeCloseTo(1, 5);
+  });
+
+  it('ignores a target in the two aimed modes, where the eye sits at the ship', () => {
+    for (const mode of ['front', 'back']) {
+      const camera = createFlightCamera();
+      placeCamera(camera, {
+        mode,
+        orbit: INITIAL_ORBIT,
+        heading,
+        target: new THREE.Vector3(50, 50, 50),
+      });
+      expect(camera.position.length()).toBe(0);
+    }
+  });
+});
+
+describe('FOCUS_ORBIT_LIMITS', () => {
+  it('measures its dolly in radii of the body, not in warped units', () => {
+    // A warped unit means nothing next to a planet: the same body is a
+    // different number of units across at every point of the journey.
+    expect(FOCUS_ORBIT_LIMITS.minDistance).toBeGreaterThan(1);
+    expect(FOCUS_ORBIT_LIMITS.maxDistance).toBeLessThan(200);
+    expect(FOCUS_ORBIT_LIMITS.minDistance).toBeLessThan(FOCUS_ORBIT_LIMITS.maxDistance);
+  });
+
+  it('never lets the eye inside the body it is looking at', () => {
+    expect(FOCUS_ORBIT_LIMITS.minDistance).toBeGreaterThan(1);
   });
 });

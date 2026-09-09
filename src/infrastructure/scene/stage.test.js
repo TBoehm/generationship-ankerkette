@@ -26,6 +26,7 @@ function makeScene(name) {
     root: { name: `${name}-root` },
     camera: { name: `${name}-camera`, aspect: 1, updateProjectionMatrix: vi.fn() },
     setOpacity: vi.fn(),
+    setFocusBody: vi.fn(),
     update: vi.fn(),
     handleDrag: vi.fn(),
     handleZoom: vi.fn(),
@@ -199,6 +200,15 @@ describe('input routing', () => {
     stage.handleDrag(1, 1);
     const handled = ship.handleDrag.mock.calls.length + flight.handleDrag.mock.calls.length;
     expect(handled).toBe(1);
+  });
+});
+
+describe('pass through to the journey', () => {
+  it('hands a body to circle straight to the flight scene', () => {
+    const { stage, flight, ship } = setup();
+    stage.setFocusBody('jupiter');
+    expect(flight.setFocusBody).toHaveBeenCalledWith('jupiter');
+    expect(ship.setFocusBody).not.toHaveBeenCalled();
   });
 });
 

@@ -34,6 +34,8 @@ import {
   createFlightCamera,
   isCameraMode,
   limitsFor,
+  FOCUS_ORBIT_LIMITS,
+  INITIAL_FOCUS_DISTANCE,
   orbitsAroundTarget,
   placeCamera,
 } from './camera.js';
@@ -126,17 +128,42 @@ export function createFlightScene({
     { ...INITIAL_ORBIT, distance: INITIAL_SYSTEM_DISTANCE },
     limitsFor('system')
   );
+  let focusBodyId = null;
+  let focusOrbit = createOrbitState(
+    { ...INITIAL_ORBIT, distance: INITIAL_FOCUS_DISTANCE },
+    FOCUS_ORBIT_LIMITS
+  );
   let distance = MISSION.startDistance;
   let boostSizes = true;
   let showLabels = true;
   let elapsed = 0;
   let labelList = [];
 
-  const activeOrbit = () => (mode === 'system' ? systemOrbit : orbit);
+  const bodyById = new Map(bodies.map((body) => [body.id, body]));
+  const focusedBody = () =>
+    focusBodyId && orbitsAroundTarget(mode) ? (bodyById.get(focusBodyId) ?? null) : null;
+  const activeOrbit = () => (focusedBody() ? focusOrbit : mode === 'system' ? systemOrbit : orbit);
+
+  /** The dolly distance in scene units, whatever it is being measured in. */
+  function eyeDistance() {
+    const body = focusedBody();
+    return body ? focusOrbit.distance * body.mesh.scale.x : activeOrbit().distance;
+  }
 
   function aim() {
     proxy.group.visible = orbitsAroundTarget(mode);
-    placeCamera(camera, { mode, orbit: activeOrbit(), heading });
+    const body = focusedBody();
+    placeCamera(camera, {
+      mode,
+      // While a body is circled the dolly counts its radii, so the eye keeps
+      // the same distance from it however far the warp has stretched the
+      // space around it.
+      orbit: body
+        ? { ...focusOrbit, distance: focusOrbit.distance * body.mesh.scale.x }
+        : activeOrbit(),
+      heading,
+      target: body ? body.mesh.position : null,
+    });
     if (camera.position.lengthSq() > 0) {
       cameraLight.position.copy(camera.position).normalize();
     } else {
@@ -240,6 +267,10 @@ export function createFlightScene({
 
     proxy.plume.visible = distance < MISSION.accelerationDistance;
     proxy.sail.visible = distance > BRAKING_START;
+    // A circled body moves: the planets run their orbits and the warp shifts
+    // the whole field as the ship advances. The eye has to follow it, or the
+    // planet drifts out from under the camera during playback.
+    if (focusBodyId) aim();
   }
 
   /**
@@ -303,6 +334,11 @@ export function createFlightScene({
     },
 
     handleDrag(dx, dy) {
+      if (focusedBody()) {
+        focusOrbit = orbitAfterDrag(focusOrbit, dx, dy, FOCUS_ORBIT_LIMITS);
+        aim();
+        return;
+      }
       if (mode === 'system') {
         systemOrbit = orbitAfterDrag(systemOrbit, dx, dy, limitsFor('system'));
         orbit = { ...orbit, theta: systemOrbit.theta, phi: systemOrbit.phi };
@@ -314,6 +350,11 @@ export function createFlightScene({
     },
 
     handleZoom(factor) {
+      if (focusedBody()) {
+        focusOrbit = orbitAfterZoom(focusOrbit, factor, FOCUS_ORBIT_LIMITS);
+        aim();
+        return;
+      }
       if (mode === 'system') {
         systemOrbit = orbitAfterZoom(systemOrbit, factor, limitsFor('system'));
       } else {
@@ -331,11 +372,32 @@ export function createFlightScene({
         camera,
         root,
         targets: pickable,
-        threshold: PICK_ANGLE * activeOrbit().distance,
+        threshold: PICK_ANGLE * eyeDistance(),
       });
       const body = hit && pickTargets.get(hit);
       if (body) onSelect({ kind: 'body', id: body.id, nameKey: body.nameKey });
     },
+
+    /**
+     * Circle a body instead of the ship. An unknown id, or null, releases it.
+     * Returns whether anything is being circled afterwards, so the caller can
+     * tell a rejected id from an accepted one.
+     */
+    setFocusBody(id) {
+      const next = id && bodyById.has(id) ? id : null;
+      if (next === focusBodyId) return next !== null;
+      focusBodyId = next;
+      if (next) {
+        focusOrbit = createOrbitState(
+          { theta: orbit.theta, phi: orbit.phi, distance: INITIAL_FOCUS_DISTANCE },
+          FOCUS_ORBIT_LIMITS
+        );
+      }
+      aim();
+      return next !== null;
+    },
+
+    focusBody: () => focusBodyId,
 
     setDistance(au) {
       if (!Number.isFinite(au)) return;

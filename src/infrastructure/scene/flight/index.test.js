@@ -357,3 +357,122 @@ describe('dispose', () => {
     expect(scene.update(16)).toHaveLength(0);
   });
 });
+
+describe('circling a body', () => {
+  const bodyOf = (scene, id) => {
+    let found = null;
+    scene.root.traverse((object) => {
+      if (object.name === id) found = object;
+    });
+    return found;
+  };
+
+  it('starts circling nothing', () => {
+    const { scene } = mount();
+    expect(scene.focusBody()).toBeNull();
+  });
+
+  it('accepts a body it draws and reports that it took it', () => {
+    const { scene } = mount();
+    expect(scene.setFocusBody('jupiter')).toBe(true);
+    expect(scene.focusBody()).toBe('jupiter');
+  });
+
+  it('refuses an id it does not draw rather than staring into nothing', () => {
+    const { scene } = mount();
+    expect(scene.setFocusBody('deathstar')).toBe(false);
+    expect(scene.focusBody()).toBeNull();
+  });
+
+  it('releases on null', () => {
+    const { scene } = mount();
+    scene.setFocusBody('mars');
+    expect(scene.setFocusBody(null)).toBe(false);
+    expect(scene.focusBody()).toBeNull();
+  });
+
+  it('puts the eye near the body rather than near the ship', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    const target = bodyOf(scene, 'jupiter');
+    const beforeFocus = scene.camera.position.distanceTo(target.position);
+    scene.setFocusBody('jupiter');
+    const afterFocus = scene.camera.position.distanceTo(target.position);
+    expect(afterFocus).toBeLessThan(beforeFocus);
+  });
+
+  it('looks at the body it circles', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setFocusBody('saturn');
+    const target = bodyOf(scene, 'saturn');
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(scene.camera.quaternion);
+    const toTarget = target.position.clone().sub(scene.camera.position).normalize();
+    expect(forward.dot(toTarget)).toBeCloseTo(1, 4);
+  });
+
+  it('keeps the same distance in radii however far the warp has stretched space', () => {
+    const { scene } = mount();
+    const radii = (au) => {
+      scene.setDistance(au);
+      scene.setFocusBody('neptune');
+      const target = bodyOf(scene, 'neptune');
+      return scene.camera.position.distanceTo(target.position) / target.scale.x;
+    };
+    expect(radii(200)).toBeCloseTo(radii(4000), 3);
+  });
+
+  it('turns around the body when dragged, and keeps looking at it', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setFocusBody('mars');
+    const target = bodyOf(scene, 'mars');
+    const before = scene.camera.position.clone();
+    scene.handleDrag(120, 40);
+    expect(scene.camera.position.distanceTo(before)).toBeGreaterThan(0);
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(scene.camera.quaternion);
+    const toTarget = target.position.clone().sub(scene.camera.position).normalize();
+    expect(forward.dot(toTarget)).toBeCloseTo(1, 4);
+  });
+
+  it('zooms towards the body without ever entering it', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setFocusBody('venus');
+    const target = bodyOf(scene, 'venus');
+    for (let i = 0; i < 60; i += 1) scene.handleZoom(0.8);
+    expect(scene.camera.position.distanceTo(target.position) / target.scale.x).toBeGreaterThan(1);
+  });
+
+  it('follows the body as it moves, instead of letting it drift away', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setFocusBody('mars');
+    const target = bodyOf(scene, 'mars');
+    for (const au of [40, 120, 900]) {
+      scene.setDistance(au);
+      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(scene.camera.quaternion);
+      const toTarget = target.position.clone().sub(scene.camera.position).normalize();
+      expect(forward.dot(toTarget), `at ${au} AU`).toBeCloseTo(1, 4);
+    }
+  });
+
+  it('hands the eye back to the ship in the two aimed modes', () => {
+    const { scene } = mount();
+    scene.setFocusBody('jupiter');
+    scene.setCameraMode('front');
+    expect(scene.camera.position.length()).toBe(0);
+  });
+
+  it('picks the focus back up when an orbiting mode returns', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setFocusBody('jupiter');
+    scene.setCameraMode('front');
+    scene.setCameraMode('chase');
+    const target = bodyOf(scene, 'jupiter');
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(scene.camera.quaternion);
+    const toTarget = target.position.clone().sub(scene.camera.position).normalize();
+    expect(forward.dot(toTarget)).toBeCloseTo(1, 4);
+  });
+});

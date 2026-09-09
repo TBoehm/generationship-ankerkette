@@ -19,6 +19,7 @@ vi.mock('./presentation/hooks/useScene.js', () => ({
       setCameraMode: (value) => stageCalls.push(['cameraMode', value]),
       setBoostSizes: (value) => stageCalls.push(['boostSizes', value]),
       setShowLabels: (value) => stageCalls.push(['showLabels', value]),
+      setFocusBody: (value) => stageCalls.push(['focusBody', value]),
       onSelect: () => {},
     };
     if (onReady && !stageCalls.length) queueMicrotask(() => onReady(stage));
@@ -38,6 +39,13 @@ function renderAt(path) {
 }
 
 describe('App', () => {
+  it('circles nothing until a body is picked', async () => {
+    stageCalls.length = 0;
+    renderAt('/');
+    await waitFor(() => expect(stageCalls.length).toBeGreaterThan(0));
+    expect(stageCalls).toContainEqual(['focusBody', null]);
+  });
+
   it('tells a late arriving scene which focus the deep link asked for', async () => {
     stageCalls.length = 0;
     renderAt('/ship');

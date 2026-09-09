@@ -109,3 +109,22 @@
     min-height: 30px;
   }
 }
+
+.flight-controls__focus {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.flight-controls__focus-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-key);
+  color: var(--color-dim);
+}
+
+.flight-controls__focus-name {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--color-brass);
+}
