@@ -19,6 +19,6 @@ export function createPresentationStage({ host, reducedMotion = false }) {
         devicePixelRatio: typeof window === 'undefined' ? 1 : window.devicePixelRatio,
       }),
     createShipScene: () => createShipScene({ reducedMotion }),
-    createFlightScene: () => createFlightScene({}),
+    createFlightScene: () => createFlightScene({ reducedMotion }),
   });
 }

@@ -8,6 +8,7 @@ import {
   warpLength,
   warpParameters,
 } from '../../../domain/usecases/spatialWarp.js';
+import { FLY_TO_DURATION_MS, flyProgress, mix } from '../../../domain/usecases/cameraFlight.js';
 import {
   createOrbitState,
   orbitAfterDrag,
@@ -87,6 +88,7 @@ function clamp(value, min, max) {
 export function createFlightScene({
   registry = createDisposalRegistry(),
   random = Math.random,
+  reducedMotion = false,
 } = {}) {
   const resources = createResources(registry);
   // No background colour on purpose. A scene background forces a clear in
@@ -116,6 +118,7 @@ export function createFlightScene({
    * otherwise: the only way back is the button in the dock, and the obvious
    * gesture, tapping the ship, would do nothing.
    */
+  const ORIGIN = new THREE.Vector3(0, 0, 0);
   const SHIP_TARGET = { kind: 'ship' };
   const bodyById = new Map(bodies.map((body) => [body.id, body]));
   const pickTargets = new Map();
@@ -156,6 +159,10 @@ export function createFlightScene({
     limitsFor('system')
   );
   let focusBodyId = null;
+  /** An approach in progress: where the eye came from, and how far along. */
+  let flyTo = null;
+  const flyFrom = new THREE.Vector3();
+  const eyeTarget = new THREE.Vector3();
   let focusOrbit = createOrbitState(
     { ...INITIAL_ORBIT, distance: INITIAL_FOCUS_DISTANCE },
     FOCUS_ORBIT_LIMITS
@@ -174,6 +181,18 @@ export function createFlightScene({
   function eyeDistance() {
     const body = focusedBody();
     return body ? focusOrbit.distance * body.mesh.scale.x : activeOrbit().distance;
+  }
+
+  /** Begin an approach from wherever the eye stands to the new subject. */
+  function startFlight() {
+    if (reducedMotion) {
+      flyTo = null;
+      return;
+    }
+    const body = focusedBody();
+    flyFrom.copy(body ? body.mesh.position : ORIGIN);
+    if (flyTo) flyFrom.copy(eyeTarget);
+    flyTo = { elapsed: 0, fromDistance: eyeDistance() };
   }
 
   /**
@@ -196,16 +215,27 @@ export function createFlightScene({
     // The mark stands in for the ship whenever the camera is looking at
     // something else, which is exactly when the ship is too far off to tap.
     proxy.marker.visible = body !== null;
+
+    // While a body is circled the dolly counts its radii, so the eye keeps the
+    // same distance from it however far the warp has stretched the space
+    // around it.
+    const destination = body ? body.mesh.position : ORIGIN;
+    const reach = body ? focusOrbit.distance * body.mesh.scale.x : activeOrbit().distance;
+
+    let target = destination;
+    let distance = reach;
+    if (flyTo) {
+      const t = flyProgress(flyTo.elapsed, { reducedMotion });
+      eyeTarget.lerpVectors(flyFrom, destination, t);
+      target = eyeTarget;
+      distance = mix(flyTo.fromDistance, reach, t);
+    }
+
     placeCamera(camera, {
       mode,
-      // While a body is circled the dolly counts its radii, so the eye keeps
-      // the same distance from it however far the warp has stretched the
-      // space around it.
-      orbit: body
-        ? { ...focusOrbit, distance: focusOrbit.distance * body.mesh.scale.x }
-        : activeOrbit(),
+      orbit: { ...(body ? focusOrbit : activeOrbit()), distance },
       heading,
-      target: body ? body.mesh.position : null,
+      target,
     });
     if (camera.position.lengthSq() > 0) {
       cameraLight.position.copy(camera.position).normalize();
@@ -228,11 +258,16 @@ export function createFlightScene({
     body.glow.position.copy(body.mesh.position);
 
     const fromShip = body.position.distanceTo(shipPosition);
+    // The body being circled is drawn at a size worth looking at, whatever the
+    // toggle says. True sizes are what the overview is for; once the eye has
+    // flown to a planet, drawing it below a pixel would put the camera inside
+    // the near plane and clip the whole scene away.
+    const isSubject = body.id === focusBodyId;
     const shown = displayRadius(
       body.radiusAu,
       fromShip,
       Math.max(trueLength * factor, SMALLEST_WARPED_LENGTH),
-      boostSizes
+      boostSizes || isSubject
     );
     // System view pins the scale, so a body is not drawn at its angular size
     // from the ship. Emphasised means the cube root of the volume ratio, which
@@ -245,9 +280,10 @@ export function createFlightScene({
     // between the planets says nothing about that, which is why the earlier
     // two attempts, anchored first on Earth and then on the largest planet,
     // both came out far too large.
-    const systemScale = boostSizes
-      ? SYSTEM_BODY_SCALE * body.cubeRadius
-      : warpLength(trueLength + body.radiusAu, parameters) - warpLength(trueLength, parameters);
+    const systemScale =
+      boostSizes || isSubject
+        ? SYSTEM_BODY_SCALE * body.cubeRadius
+        : warpLength(trueLength + body.radiusAu, parameters) - warpLength(trueLength, parameters);
     body.mesh.scale.setScalar(inSystem ? systemScale : Math.max(shown, SMALLEST_BODY_SCALE));
 
     if (body.absoluteMagnitude !== null) {
@@ -366,6 +402,11 @@ export function createFlightScene({
     update(deltaMs) {
       const seconds = Math.max(0, deltaMs) / 1000;
       elapsed += seconds;
+      if (flyTo) {
+        flyTo.elapsed += Math.max(0, deltaMs);
+        if (flyTo.elapsed >= FLY_TO_DURATION_MS) flyTo = null;
+        aim();
+      }
       spinRings(proxy, seconds);
       if (proxy.plume.visible) {
         resources.setBase(
@@ -443,6 +484,7 @@ export function createFlightScene({
     setFocusBody(id) {
       const next = id && bodyById.has(id) ? id : null;
       if (next === focusBodyId) return next !== null;
+      startFlight();
       focusBodyId = next;
       if (next) {
         focusOrbit = createOrbitState(
@@ -450,6 +492,10 @@ export function createFlightScene({
           FOCUS_ORBIT_LIMITS
         );
       }
+      // The subject decides how large it is drawn, so the sizes are settled
+      // before the eye is placed against them. rebuild only re-aims while
+      // something is being circled, so letting go needs the explicit call.
+      rebuild();
       aim();
       return next !== null;
     },

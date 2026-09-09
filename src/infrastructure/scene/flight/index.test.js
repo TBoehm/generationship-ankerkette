@@ -8,6 +8,7 @@ import { MISSION } from '../../../domain/constants/missionProfile.js';
 import { DESTINATIONS, PLANETS, PX_PLANETS, STARS } from '../../../domain/constants/starSystem.js';
 import { pathPositionAt } from '../../../domain/usecases/flightGeometry.js';
 import { warpLength, warpParameters } from '../../../domain/usecases/spatialWarp.js';
+import { FLY_TO_DURATION_MS } from '../../../domain/usecases/cameraFlight.js';
 import { AU_KM } from '../../../domain/constants/astronomy.js';
 
 const BURNOUT = MISSION.accelerationDistance;
@@ -389,6 +390,7 @@ describe('circling a body', () => {
   it('releases on null', () => {
     const { scene } = mount();
     scene.setFocusBody('mars');
+    scene.update(FLY_TO_DURATION_MS);
     expect(scene.setFocusBody(null)).toBe(false);
     expect(scene.focusBody()).toBeNull();
   });
@@ -399,6 +401,7 @@ describe('circling a body', () => {
     const target = bodyOf(scene, 'jupiter');
     const beforeFocus = scene.camera.position.distanceTo(target.position);
     scene.setFocusBody('jupiter');
+    scene.update(FLY_TO_DURATION_MS);
     const afterFocus = scene.camera.position.distanceTo(target.position);
     expect(afterFocus).toBeLessThan(beforeFocus);
   });
@@ -407,6 +410,7 @@ describe('circling a body', () => {
     const { scene } = mount();
     scene.setDistance(30);
     scene.setFocusBody('saturn');
+    scene.update(FLY_TO_DURATION_MS);
     const target = bodyOf(scene, 'saturn');
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(scene.camera.quaternion);
     const toTarget = target.position.clone().sub(scene.camera.position).normalize();
@@ -418,6 +422,8 @@ describe('circling a body', () => {
     const radii = (au) => {
       scene.setDistance(au);
       scene.setFocusBody('neptune');
+      scene.update(FLY_TO_DURATION_MS);
+      scene.update(16);
       const target = bodyOf(scene, 'neptune');
       return scene.camera.position.distanceTo(target.position) / target.scale.x;
     };
@@ -428,6 +434,7 @@ describe('circling a body', () => {
     const { scene } = mount();
     scene.setDistance(30);
     scene.setFocusBody('mars');
+    scene.update(FLY_TO_DURATION_MS);
     const target = bodyOf(scene, 'mars');
     const before = scene.camera.position.clone();
     scene.handleDrag(120, 40);
@@ -441,6 +448,7 @@ describe('circling a body', () => {
     const { scene } = mount();
     scene.setDistance(30);
     scene.setFocusBody('venus');
+    scene.update(FLY_TO_DURATION_MS);
     const target = bodyOf(scene, 'venus');
     for (let i = 0; i < 60; i += 1) scene.handleZoom(0.8);
     expect(scene.camera.position.distanceTo(target.position) / target.scale.x).toBeGreaterThan(1);
@@ -450,9 +458,11 @@ describe('circling a body', () => {
     const { scene } = mount();
     scene.setDistance(30);
     scene.setFocusBody('mars');
+    scene.update(FLY_TO_DURATION_MS);
     const target = bodyOf(scene, 'mars');
     for (const au of [40, 120, 900]) {
       scene.setDistance(au);
+      scene.update(16);
       const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(scene.camera.quaternion);
       const toTarget = target.position.clone().sub(scene.camera.position).normalize();
       expect(forward.dot(toTarget), `at ${au} AU`).toBeCloseTo(1, 4);
@@ -462,6 +472,7 @@ describe('circling a body', () => {
   it('hands the eye back to the ship in the two aimed modes', () => {
     const { scene } = mount();
     scene.setFocusBody('jupiter');
+    scene.update(FLY_TO_DURATION_MS);
     scene.setCameraMode('front');
     expect(scene.camera.position.length()).toBe(0);
   });
@@ -470,6 +481,7 @@ describe('circling a body', () => {
     const { scene } = mount();
     scene.setDistance(30);
     scene.setFocusBody('jupiter');
+    scene.update(FLY_TO_DURATION_MS);
     scene.setCameraMode('front');
     scene.setCameraMode('chase');
     const target = bodyOf(scene, 'jupiter');
@@ -591,13 +603,16 @@ describe('the ship stays findable while a planet is circled', () => {
     expect(find(scene, 'ship-marker')).toBeTruthy();
   });
 
-  it('leaves the ship off screen up close, which is what the dock button is for', () => {
-    // Circling a planet at a few radii puts the ship behind the camera. The
-    // mark is drawn and it is a pick target, but it can only be tapped once
-    // the ship is back in frame, so the way home cannot depend on it alone.
+  it('still leaves the ship off screen once the eye has arrived', () => {
+    // Measured after the approach has finished, which matters: during the
+    // flight the eye is still near the ship and the mark is trivially in
+    // frame. Once it has arrived the ship sits outside the view, so the way
+    // home is the dock button, not the mark.
     const { scene } = mount();
     scene.setDistance(30);
     scene.setFocusBody('jupiter');
+    scene.update(FLY_TO_DURATION_MS);
+    scene.update(16);
     scene.root.updateMatrixWorld(true);
     const world = find(scene, 'ship-marker').getWorldPosition(new THREE.Vector3());
     const projected = world.clone().project(scene.camera);
@@ -789,5 +804,100 @@ describe('the orbits are a way to reach a planet', () => {
         }
       }
     }
+  });
+});
+
+describe('flying to a planet instead of cutting to it', () => {
+  const positionOf = (scene, id) => {
+    let found = null;
+    scene.root.traverse((object) => {
+      if (object.name === id) found = object;
+    });
+    return found.position.clone();
+  };
+
+  const setUp = () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode('system');
+    return scene;
+  };
+
+  it('does not jump the eye the moment a planet is chosen', () => {
+    const scene = setUp();
+    const before = scene.camera.position.clone();
+    scene.setFocusBody('neptune');
+    expect(scene.camera.position.distanceTo(before)).toBeLessThan(1e-6);
+  });
+
+  it('is on its way after part of the flight', () => {
+    const scene = setUp();
+    const before = scene.camera.position.clone();
+    scene.setFocusBody('neptune');
+    scene.update(FLY_TO_DURATION_MS / 2);
+    const midway = scene.camera.position.clone();
+    expect(midway.distanceTo(before)).toBeGreaterThan(0);
+    expect(midway.distanceTo(positionOf(scene, 'neptune'))).toBeGreaterThan(
+      scene.camera.position.distanceTo(positionOf(scene, 'neptune')) - 1e-9
+    );
+  });
+
+  it('arrives once the flight has run its course', () => {
+    const scene = setUp();
+    scene.setFocusBody('neptune');
+    scene.update(FLY_TO_DURATION_MS);
+    scene.update(16);
+    const target = positionOf(scene, 'neptune');
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(scene.camera.quaternion);
+    const toTarget = target.clone().sub(scene.camera.position).normalize();
+    expect(forward.dot(toTarget)).toBeCloseTo(1, 4);
+  });
+
+  it('closes in rather than drifting off', () => {
+    const scene = setUp();
+    scene.setFocusBody('neptune');
+    const reach = () => scene.camera.position.distanceTo(positionOf(scene, 'neptune'));
+    const start = reach();
+    scene.update(FLY_TO_DURATION_MS / 3);
+    const partway = reach();
+    scene.update(FLY_TO_DURATION_MS);
+    expect(partway).toBeLessThan(start);
+    expect(reach()).toBeLessThan(partway);
+  });
+
+  it('flies back to the ship when the planet is released', () => {
+    const scene = setUp();
+    scene.setFocusBody('neptune');
+    scene.update(FLY_TO_DURATION_MS);
+    const atPlanet = scene.camera.position.clone();
+    scene.setFocusBody(null);
+    expect(scene.camera.position.distanceTo(atPlanet)).toBeLessThan(1e-6);
+    scene.update(FLY_TO_DURATION_MS);
+    scene.update(16);
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(scene.camera.quaternion);
+    const toOrigin = scene.camera.position.clone().negate().normalize();
+    expect(forward.dot(toOrigin)).toBeCloseTo(1, 4);
+  });
+
+  it('goes straight there when the viewer asked for reduced motion', () => {
+    const { scene } = mountFlightScene({ reducedMotion: true });
+    scene.setDistance(30);
+    scene.setCameraMode('system');
+    scene.setFocusBody('neptune');
+    const target = positionOf(scene, 'neptune');
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(scene.camera.quaternion);
+    const toTarget = target.clone().sub(scene.camera.position).normalize();
+    expect(forward.dot(toTarget)).toBeCloseTo(1, 4);
+  });
+
+  it('lets a drag land on the new subject once the flight is over', () => {
+    const scene = setUp();
+    scene.setFocusBody('neptune');
+    scene.update(FLY_TO_DURATION_MS);
+    scene.handleDrag(60, 20);
+    const target = positionOf(scene, 'neptune');
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(scene.camera.quaternion);
+    const toTarget = target.clone().sub(scene.camera.position).normalize();
+    expect(forward.dot(toTarget)).toBeCloseTo(1, 4);
   });
 });
