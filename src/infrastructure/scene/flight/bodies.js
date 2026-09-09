@@ -112,8 +112,6 @@ function createBody({ definition, resources, geometries, orbit = null }) {
     radiusAu: definition.radiusKm / AU_KM,
     /** Cube root of the volume ratio, the exaggeration of the system view. */
     cubeRadius: Math.cbrt(definition.radiusKm / EARTH_RADIUS_KM),
-    /** The honest ratio, for when the viewer asks for true sizes. */
-    radiusRatio: definition.radiusKm / EARTH_RADIUS_KM,
     absoluteMagnitude: definition.absoluteMagnitude ?? null,
     position: new THREE.Vector3(),
     orbit,

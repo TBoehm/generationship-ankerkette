@@ -7,6 +7,8 @@ import { FAR_PLANE, FIELD_OF_VIEW, INITIAL_SYSTEM_DISTANCE, NEAR_PLANE } from '.
 import { MISSION } from '../../../domain/constants/missionProfile.js';
 import { DESTINATIONS, PLANETS, PX_PLANETS, STARS } from '../../../domain/constants/starSystem.js';
 import { pathPositionAt } from '../../../domain/usecases/flightGeometry.js';
+import { warpLength, warpParameters } from '../../../domain/usecases/spatialWarp.js';
+import { AU_KM } from '../../../domain/constants/astronomy.js';
 
 const BURNOUT = MISSION.accelerationDistance;
 const BRAKING_START = MISSION.totalDistance - MISSION.brakingDistance;
@@ -477,72 +479,6 @@ describe('circling a body', () => {
   });
 });
 
-describe('emphasised against true sizes', () => {
-  const scaleOf = (scene, id) => {
-    let found = null;
-    scene.root.traverse((object) => {
-      if (object.name === id) found = object;
-    });
-    return found.scale.x;
-  };
-
-  it('changes the bodies in chase view', () => {
-    const { scene } = mount();
-    scene.setDistance(30);
-    scene.setBoostSizes(false);
-    const trueSize = scaleOf(scene, 'jupiter');
-    scene.setBoostSizes(true);
-    expect(scaleOf(scene, 'jupiter')).toBeGreaterThan(trueSize * 10);
-  });
-
-  it('changes the bodies in system view as well, where it used to do nothing', () => {
-    // Measured on Mercury, not on Jupiter: the largest planet is the anchor
-    // both settings share, so it is the one body that must not move.
-    const { scene } = mount();
-    scene.setDistance(30);
-    scene.setCameraMode('system');
-    scene.setBoostSizes(true);
-    const emphasised = scaleOf(scene, 'mercury');
-    scene.setBoostSizes(false);
-    expect(scaleOf(scene, 'mercury')).not.toBeCloseTo(emphasised, 6);
-  });
-
-  it('shows the real radius ratio in system view when sizes are true', () => {
-    const { scene } = mount();
-    scene.setDistance(30);
-    scene.setCameraMode('system');
-    scene.setBoostSizes(false);
-    const jupiter = PLANETS.find((planet) => planet.id === 'jupiter');
-    const earth = PLANETS.find((planet) => planet.id === 'earth');
-    expect(scaleOf(scene, 'jupiter') / scaleOf(scene, 'earth')).toBeCloseTo(
-      jupiter.radiusKm / earth.radiusKm,
-      3
-    );
-  });
-
-  it('compresses that ratio when sizes are emphasised, or Mercury would vanish', () => {
-    const { scene } = mount();
-    scene.setDistance(30);
-    scene.setCameraMode('system');
-    scene.setBoostSizes(true);
-    const spread = scaleOf(scene, 'jupiter') / scaleOf(scene, 'mercury');
-    scene.setBoostSizes(false);
-    expect(scaleOf(scene, 'jupiter') / scaleOf(scene, 'mercury')).toBeGreaterThan(spread * 5);
-  });
-
-  it('shrinks the earth along with everything below the largest planet', () => {
-    // Earth used to be the yardstick, which is what made true sizes inflate
-    // every world above it. The yardstick is the largest planet now.
-    const { scene } = mount();
-    scene.setDistance(30);
-    scene.setCameraMode('system');
-    scene.setBoostSizes(true);
-    const emphasised = scaleOf(scene, 'earth');
-    scene.setBoostSizes(false);
-    expect(scaleOf(scene, 'earth')).toBeLessThan(emphasised);
-  });
-});
-
 describe('tapping the ship', () => {
   const centreOf = (scene, width, height) => {
     scene.root.updateMatrixWorld(true);
@@ -618,50 +554,6 @@ describe('saturn wears its rings', () => {
   });
 });
 
-describe('true sizes must not let a star swallow the system view', () => {
-  const scaleOf = (scene, id) => {
-    let found = null;
-    scene.root.traverse((object) => {
-      if (object.name === id) found = object;
-    });
-    return found.scale.x;
-  };
-
-  it('keeps the sun well inside the view the camera looks at', () => {
-    // The sun is 109 Earth radii. Drawn at that ratio in a view a hundred and
-    // fifty units wide it is not a body any more, it is a wall the camera
-    // stands inside. The toggle is about the planets.
-    const { scene } = mount();
-    scene.setDistance(30);
-    scene.setCameraMode('system');
-    scene.setBoostSizes(false);
-    expect(scaleOf(scene, 'sun')).toBeLessThan(INITIAL_SYSTEM_DISTANCE / 8);
-  });
-
-  it('leaves the sun alone whichever way the toggle stands', () => {
-    const { scene } = mount();
-    scene.setDistance(30);
-    scene.setCameraMode('system');
-    scene.setBoostSizes(true);
-    const emphasised = scaleOf(scene, 'sun');
-    scene.setBoostSizes(false);
-    expect(scaleOf(scene, 'sun')).toBeCloseTo(emphasised, 9);
-  });
-
-  it('still gives the planets their honest ratio', () => {
-    const { scene } = mount();
-    scene.setDistance(30);
-    scene.setCameraMode('system');
-    scene.setBoostSizes(false);
-    const jupiter = PLANETS.find((planet) => planet.id === 'jupiter');
-    const earth = PLANETS.find((planet) => planet.id === 'earth');
-    expect(scaleOf(scene, 'jupiter') / scaleOf(scene, 'earth')).toBeCloseTo(
-      jupiter.radiusKm / earth.radiusKm,
-      3
-    );
-  });
-});
-
 describe('the ship stays findable while a planet is circled', () => {
   const find = (scene, name) => {
     let found = null;
@@ -714,7 +606,7 @@ describe('the ship stays findable while a planet is circled', () => {
   });
 });
 
-describe('true sizes shrink the system rather than inflating it', () => {
+describe('sizes in the two views', () => {
   const scaleOf = (scene, id) => {
     let found = null;
     scene.root.traverse((object) => {
@@ -730,53 +622,172 @@ describe('true sizes shrink the system rather than inflating it', () => {
     return scene;
   };
 
-  const planetIds = PLANETS.map((planet) => planet.id);
+  it('changes the bodies in chase view', () => {
+    const { scene } = mount();
+    scene.setDistance(30);
+    scene.setBoostSizes(false);
+    const trueSize = scaleOf(scene, 'jupiter');
+    scene.setBoostSizes(true);
+    expect(scaleOf(scene, 'jupiter')).toBeGreaterThan(trueSize * 10);
+  });
 
-  it('keeps the largest planet the same size in both settings', () => {
-    // The toggle changes how far apart the sizes are, not how big the whole
-    // system is drawn. Anchoring on Earth instead made Jupiter five times
-    // larger on the way to true sizes, which reads as the opposite of true.
+  it('changes them in system view too, where the toggle used to do nothing', () => {
     const scene = systemScene();
     scene.setBoostSizes(true);
     const emphasised = scaleOf(scene, 'jupiter');
     scene.setBoostSizes(false);
-    expect(scaleOf(scene, 'jupiter')).toBeCloseTo(emphasised, 6);
+    expect(scaleOf(scene, 'jupiter')).toBeLessThan(emphasised / 1000);
   });
 
-  it('makes every other planet smaller, never larger', () => {
+  it('draws a body at the warped thickness of its own radius when sizes are true', () => {
+    // The honest size in a compressed scene is how much scene the body's own
+    // radius takes up where it stands. A ratio between the planets is not it:
+    // it says nothing about how they sit against their orbits, which is the
+    // whole point of the system view.
+    const scene = systemScene();
+    scene.setBoostSizes(false);
+    const parameters = warpParameters(30, 'system');
+    const jupiter = PLANETS.find((planet) => planet.id === 'jupiter');
+    const orbit = jupiter.semiMajorAxis;
+    const radiusAu = jupiter.radiusKm / AU_KM;
+    const expected = warpLength(orbit + radiusAu, parameters) - warpLength(orbit, parameters);
+    expect(scaleOf(scene, 'jupiter')).toBeCloseTo(expected, 5);
+  });
+
+  it('shrinks every planet, not only the small ones', () => {
     const scene = systemScene();
     scene.setBoostSizes(true);
-    const emphasised = Object.fromEntries(planetIds.map((id) => [id, scaleOf(scene, id)]));
+    const emphasised = Object.fromEntries(
+      PLANETS.map((planet) => [planet.id, scaleOf(scene, planet.id)])
+    );
     scene.setBoostSizes(false);
-    for (const id of planetIds) {
-      expect(scaleOf(scene, id), id).toBeLessThanOrEqual(emphasised[id] + 1e-9);
+    for (const planet of PLANETS) {
+      expect(scaleOf(scene, planet.id), planet.id).toBeLessThan(emphasised[planet.id] / 100);
     }
   });
 
-  it('shrinks the small worlds a great deal, which is the honest picture', () => {
+  it('keeps the sun visible without letting it swallow the view', () => {
     const scene = systemScene();
-    scene.setBoostSizes(true);
-    const emphasised = scaleOf(scene, 'mercury');
     scene.setBoostSizes(false);
-    expect(scaleOf(scene, 'mercury')).toBeLessThan(emphasised / 5);
+    const sun = scaleOf(scene, 'sun');
+    expect(sun).toBeGreaterThan(1);
+    expect(sun).toBeLessThan(INITIAL_SYSTEM_DISTANCE / 8);
   });
 
-  it('still holds the true radius ratio between the planets', () => {
+  it('keeps the emphasised setting as the cube root of the volume ratio', () => {
     const scene = systemScene();
-    scene.setBoostSizes(false);
+    scene.setBoostSizes(true);
     const jupiter = PLANETS.find((planet) => planet.id === 'jupiter');
-    const mercury = PLANETS.find((planet) => planet.id === 'mercury');
-    expect(scaleOf(scene, 'jupiter') / scaleOf(scene, 'mercury')).toBeCloseTo(
-      jupiter.radiusKm / mercury.radiusKm,
+    const earth = PLANETS.find((planet) => planet.id === 'earth');
+    expect(scaleOf(scene, 'jupiter') / scaleOf(scene, 'earth')).toBeCloseTo(
+      Math.cbrt(jupiter.radiusKm / earth.radiusKm),
       3
     );
   });
+});
 
-  it('leaves the sun where it was, it is not part of the comparison', () => {
-    const scene = systemScene();
-    scene.setBoostSizes(true);
-    const emphasised = scaleOf(scene, 'sun');
+describe('the orbits are a way to reach a planet', () => {
+  const lineOf = (scene, name) => {
+    let found = null;
+    scene.root.traverse((object) => {
+      if (object.name === name) found = object;
+    });
+    return found;
+  };
+
+  const tapOn = (scene, object, index, width, height) => {
+    scene.root.updateMatrixWorld(true);
+    const position = object.geometry.getAttribute('position');
+    const point = new THREE.Vector3(
+      position.getX(index),
+      position.getY(index),
+      position.getZ(index)
+    );
+    object.localToWorld(point);
+    const projected = point.project(scene.camera);
+    const picked = [];
+    scene.handleTap((projected.x * 0.5 + 0.5) * width, (-projected.y * 0.5 + 0.5) * height, (s) =>
+      picked.push(s)
+    );
+    return picked;
+  };
+
+  it('draws one orbit per planet', () => {
+    const { scene } = mount();
+    for (const planet of PLANETS)
+      expect(lineOf(scene, `orbit-${planet.id}`), planet.id).toBeTruthy();
+  });
+
+  /** The orbit vertex furthest on screen from the planet standing on it. */
+  const farSideOf = (scene, id, width, height) => {
+    scene.root.updateMatrixWorld(true);
+    let planet = null;
+    scene.root.traverse((object) => {
+      if (object.name === id) planet = object;
+    });
+    const onScreen = (point) => {
+      const projected = point.clone().project(scene.camera);
+      return { x: (projected.x * 0.5 + 0.5) * width, y: (-projected.y * 0.5 + 0.5) * height };
+    };
+    const here = onScreen(planet.position);
+    const orbit = lineOf(scene, `orbit-${id}`);
+    const position = orbit.geometry.getAttribute('position');
+    let best = 0;
+    let bestDistance = -1;
+    for (let i = 0; i < position.count; i += 1) {
+      const point = new THREE.Vector3(position.getX(i), position.getY(i), position.getZ(i));
+      orbit.localToWorld(point);
+      const there = onScreen(point);
+      const distance = Math.hypot(there.x - here.x, there.y - here.y);
+      if (distance > bestDistance) {
+        bestDistance = distance;
+        best = i;
+      }
+    }
+    return { orbit, index: best, distance: bestDistance };
+  };
+
+  it('reports the planet from the far side of its orbit, nowhere near the planet', () => {
+    // Tapping anywhere along the orbit would pass for the wrong reason: the
+    // planet sits on its own orbit, so a scan eventually hits the planet
+    // itself. This taps the point furthest from it that is still on the line.
+    const { scene, width, height } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode('system');
     scene.setBoostSizes(false);
-    expect(scaleOf(scene, 'sun')).toBeCloseTo(emphasised, 9);
+    const far = farSideOf(scene, 'jupiter', width, height);
+    expect(far.distance).toBeGreaterThan(100);
+    const picked = tapOn(scene, far.orbit, far.index, width, height);
+    expect(picked.some((entry) => entry.kind === 'body' && entry.id === 'jupiter')).toBe(true);
+  });
+
+  it('reports the right planet for the right orbit', () => {
+    const { scene, width, height } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode('system');
+    const orbit = lineOf(scene, 'orbit-neptune');
+    const position = orbit.geometry.getAttribute('position');
+    const found = new Set();
+    for (let i = 0; i < position.count; i += 5) {
+      for (const entry of tapOn(scene, orbit, i, width, height)) {
+        if (entry.kind === 'body') found.add(entry.id);
+      }
+    }
+    expect(found.has('neptune')).toBe(true);
+  });
+
+  it('leaves the flight path and the habitable zone alone, they are not bodies', () => {
+    const { scene, width, height } = mount();
+    scene.setDistance(30);
+    scene.setCameraMode('system');
+    for (const name of ['flight-path', 'habitable-zone-inner']) {
+      const line = lineOf(scene, name);
+      const position = line.geometry.getAttribute('position');
+      for (let i = 0; i < position.count; i += 23) {
+        for (const entry of tapOn(scene, line, i, width, height)) {
+          expect(entry.kind === 'body' && entry.id === name, name).toBe(false);
+        }
+      }
+    }
   });
 });

@@ -2,7 +2,12 @@ import * as THREE from 'three';
 import { MISSION } from '../../../domain/constants/missionProfile.js';
 import { DESTINATIONS } from '../../../domain/constants/starSystem.js';
 import { flightStateAt } from '../../../domain/usecases/flightState.js';
-import { displayRadius, warpFactor, warpParameters } from '../../../domain/usecases/spatialWarp.js';
+import {
+  displayRadius,
+  warpFactor,
+  warpLength,
+  warpParameters,
+} from '../../../domain/usecases/spatialWarp.js';
 import {
   createOrbitState,
   orbitAfterDrag,
@@ -112,6 +117,7 @@ export function createFlightScene({
    * gesture, tapping the ship, would do nothing.
    */
   const SHIP_TARGET = { kind: 'ship' };
+  const bodyById = new Map(bodies.map((body) => [body.id, body]));
   const pickTargets = new Map();
   for (const body of bodies) {
     pickTargets.set(body.mesh, body);
@@ -121,6 +127,17 @@ export function createFlightScene({
     if (object.isMesh) pickTargets.set(object, SHIP_TARGET);
   });
   pickTargets.set(proxy.marker, SHIP_TARGET);
+
+  /**
+   * An orbit stands in for the planet that runs it. At true sizes a planet is
+   * far below a pixel, and its orbit is then the only thing left on screen
+   * large enough to aim at.
+   */
+  traceGroup.traverse((object) => {
+    if (!object.name.startsWith('orbit-')) return;
+    const body = bodyById.get(object.name.slice('orbit-'.length));
+    if (body) pickTargets.set(object, body);
+  });
   const pickable = [...pickTargets.keys()];
   const pick = createPicker();
 
@@ -149,17 +166,6 @@ export function createFlightScene({
   let elapsed = 0;
   let labelList = [];
 
-  const bodyById = new Map(bodies.map((body) => [body.id, body]));
-
-  /**
-   * The two system view scales are anchored on the largest planet, so the
-   * toggle changes how far apart the sizes are and not how large the whole
-   * system is drawn. Anchored on Earth instead, switching to true sizes made
-   * Jupiter five times larger, which reads as the opposite of true.
-   */
-  const planets = bodies.filter((body) => body.absoluteMagnitude === null);
-  const largestCubeRadius = Math.max(...planets.map((body) => body.cubeRadius));
-  const largestRadiusRatio = Math.max(...planets.map((body) => body.radiusRatio));
   const focusedBody = () =>
     focusBodyId && orbitsAroundTarget(mode) ? (bodyById.get(focusBodyId) ?? null) : null;
   const activeOrbit = () => (focusedBody() ? focusOrbit : mode === 'system' ? systemOrbit : orbit);
@@ -228,21 +234,20 @@ export function createFlightScene({
       Math.max(trueLength * factor, SMALLEST_WARPED_LENGTH),
       boostSizes
     );
-    // System view pins the scale, so the bodies are drawn at a chosen ratio
-    // rather than at their angular size. Emphasised means the cube root of the
-    // volume ratio, which keeps Mercury visible next to Jupiter; true means the
-    // radius ratio itself, where Jupiter really is eleven Earths across. The
-    // toggle used to be ignored here entirely.
+    // System view pins the scale, so a body is not drawn at its angular size
+    // from the ship. Emphasised means the cube root of the volume ratio, which
+    // keeps Mercury visible next to Jupiter.
     //
-    // Stars are exempt. The sun is 109 Earth radii, and drawn at that ratio in
-    // a view a hundred and fifty units wide it stops being a body and becomes a
-    // wall the camera stands inside. The toggle is about the planets.
-    const isStar = body.absoluteMagnitude !== null;
-    const systemRatio =
-      boostSizes || isStar
-        ? body.cubeRadius
-        : (largestCubeRadius * body.radiusRatio) / largestRadiusRatio;
-    const systemScale = SYSTEM_BODY_SCALE * systemRatio;
+    // True means the warped thickness of the body's own radius where it
+    // stands: how much of the compressed scene it actually occupies. That is
+    // the only honest answer here, because it is the one that holds the body
+    // against its own orbit, and against the orbits it is drawn among. A ratio
+    // between the planets says nothing about that, which is why the earlier
+    // two attempts, anchored first on Earth and then on the largest planet,
+    // both came out far too large.
+    const systemScale = boostSizes
+      ? SYSTEM_BODY_SCALE * body.cubeRadius
+      : warpLength(trueLength + body.radiusAu, parameters) - warpLength(trueLength, parameters);
     body.mesh.scale.setScalar(inSystem ? systemScale : Math.max(shown, SMALLEST_BODY_SCALE));
 
     if (body.absoluteMagnitude !== null) {
