@@ -8,11 +8,6 @@
     "ship": "Schiff",
     "flight": "Flug"
   },
-  "overview": {
-    "lead": "Zwei Ansichten desselben Entwurfs: der Aufbau des Schiffs und die Reise, die es zurücklegt.",
-    "ship": "Generalplan, Decks und Raumaufteilung",
-    "flight": "Vom Sonnensystem bis Proxima Centauri b"
-  },
   "figures": {
     "length": "Länge",
     "hullDiameter": "Rumpf ⌀",
@@ -37,11 +32,11 @@
     "kelvin": "K",
     "megawatt": "MW",
     "percent": "%",
-    "day": "Tage"
-  },
-  "pending": {
-    "title": "Noch nicht umgesetzt",
-    "body": "Diese Ansicht entsteht in TASK-001, der Zusammenführung von Schiff und Flugbahn."
+    "day": "Tage",
+    "gravity": "g",
+    "metrePerSecond": "m/s",
+    "metrePerSecondSquared": "m/s²",
+    "astronomicalUnit": "AE"
   },
   "ship": {
     "deck": {
@@ -544,6 +539,69 @@
         "title": "Ankunft bei Proxima b",
         "text": "Nach 466 Jahren und achtzehn Generationen. Proxima b umkreist den Stern in 11,2 Tagen, Proxima d in 5,1 Tagen. Beide wurden 2025 mit NIRPS bestätigt, der frühere Kandidat Proxima c durch dieselben Messungen widerlegt."
       }
+    },
+    "time": "Zeit",
+    "speed": "Tempo",
+    "sun": "Sonne",
+    "target": "Ziel",
+    "proxima": "Proxima",
+    "generation": "Generation",
+    "phase": "Phase",
+    "play": "Abspielen",
+    "pause": "Anhalten",
+    "position": "Position auf der Flugbahn",
+    "chapters": "Kapitel",
+    "mode": {
+      "chase": "Verfolgung",
+      "system": "Systemansicht",
+      "front": "Blick voraus",
+      "back": "Blick zurück"
+    },
+    "sizes": {
+      "boosted": "Größen betont",
+      "true": "Größen echt"
+    },
+    "labels": {
+      "on": "Namen an",
+      "off": "Namen aus"
     }
+  },
+  "focus": {
+    "ship": "Schiff",
+    "flight": "Reise",
+    "label": "Ansicht wechseln"
+  },
+  "sheet": {
+    "index": "Verzeichnis",
+    "sections": "Abschnitte",
+    "decks": "Decks",
+    "rooms": "Räume",
+    "back": "Zurück",
+    "open": "Öffnen",
+    "noDecks": "Dieser Abschnitt hat keine begehbaren Decks.",
+    "plan": "Deckplan",
+    "corridor": "Längsgang, 4 m breit, durchgehend über den ganzen Ring",
+    "perSector": "je Sektor",
+    "sectors": "vier gleiche Sektoren je Ring"
+  },
+  "deck": {
+    "radius": "Radius",
+    "gravity": "Schwerkraft",
+    "sectorLength": "Sektorlänge",
+    "sectorArea": "Sektorfläche",
+    "roomArea": "Raumfläche",
+    "rimSpeed": "Randgeschwindigkeit",
+    "coriolis": "Coriolis bei 1,5 m/s"
+  },
+  "room": {
+    "area": "Fläche",
+    "share": "Anteil am Deck",
+    "allSectors": "in allen vier Sektoren"
+  },
+  "phase": {
+    "tow": "Schlepp",
+    "acceleration": "Beschleunigung",
+    "cruise": "Marschfahrt",
+    "braking": "Bremsung"
   }
 }

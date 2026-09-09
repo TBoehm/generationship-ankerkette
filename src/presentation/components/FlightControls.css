@@ -1,0 +1,111 @@
+.flight-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.flight-controls__chapter-title {
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+
+.flight-controls__chapter-text {
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: #c2c0ba;
+}
+
+.flight-controls__transport {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.flight-controls__play {
+  border: 1px solid var(--color-rule);
+  background: none;
+  color: var(--color-dim);
+  font-size: var(--text-body);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-panel);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.flight-controls__play--on {
+  border-color: var(--color-brass);
+  color: var(--color-brass);
+}
+
+.flight-controls__slider {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  height: var(--size-touch);
+  cursor: pointer;
+}
+
+.flight-controls__slider::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--color-warm), #333d46 45%, #333d46 55%, #c4705a);
+}
+
+.flight-controls__slider::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--color-warm), #333d46 45%, #333d46 55%, #c4705a);
+}
+
+.flight-controls__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-brass);
+  border: 2px solid var(--color-hull);
+  margin-top: -7px;
+}
+
+.flight-controls__slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-brass);
+  border: 2px solid var(--color-hull);
+}
+
+.flight-controls__row {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+
+.flight-controls__chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  border: 1px solid var(--color-rule);
+  background: none;
+  color: var(--color-dim);
+  font-size: var(--text-key);
+  padding: 0 var(--space-2);
+  min-height: var(--size-touch);
+  border-radius: var(--radius-panel);
+  cursor: pointer;
+}
+
+.flight-controls__chip--on {
+  border-color: var(--color-brass);
+  color: var(--color-brass);
+}
+
+@media (min-width: 1024px) {
+  .flight-controls__chip,
+  .flight-controls__play {
+    min-height: 30px;
+  }
+}

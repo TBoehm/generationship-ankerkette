@@ -8,11 +8,6 @@
     "ship": "Ship",
     "flight": "Flight"
   },
-  "overview": {
-    "lead": "Two views of one design: how the ship is built and the journey it makes.",
-    "ship": "General plan, decks and room layout",
-    "flight": "From the solar system to Proxima Centauri b"
-  },
   "figures": {
     "length": "Length",
     "hullDiameter": "Hull ⌀",
@@ -37,11 +32,11 @@
     "kelvin": "K",
     "megawatt": "MW",
     "percent": "%",
-    "day": "days"
-  },
-  "pending": {
-    "title": "Not implemented yet",
-    "body": "This view is built in TASK-001, the merge of the ship and the flight path."
+    "day": "days",
+    "gravity": "g",
+    "metrePerSecond": "m/s",
+    "metrePerSecondSquared": "m/s²",
+    "astronomicalUnit": "AU"
   },
   "ship": {
     "deck": {
@@ -544,6 +539,69 @@
         "title": "Arrival at Proxima b",
         "text": "After 466 years and eighteen generations. Proxima b circles the star in 11.2 days, Proxima d in 5.1 days. Both were confirmed with NIRPS in 2025, the earlier candidate Proxima c disproved by the same measurements."
       }
+    },
+    "time": "Time",
+    "speed": "Speed",
+    "sun": "Sun",
+    "target": "Target",
+    "proxima": "Proxima",
+    "generation": "Generation",
+    "phase": "Phase",
+    "play": "Play",
+    "pause": "Pause",
+    "position": "Position along the flight path",
+    "chapters": "Chapters",
+    "mode": {
+      "chase": "Chase",
+      "system": "System view",
+      "front": "Look ahead",
+      "back": "Look back"
+    },
+    "sizes": {
+      "boosted": "Sizes emphasised",
+      "true": "Sizes true"
+    },
+    "labels": {
+      "on": "Names on",
+      "off": "Names off"
     }
+  },
+  "focus": {
+    "ship": "Ship",
+    "flight": "Journey",
+    "label": "Switch view"
+  },
+  "sheet": {
+    "index": "Index",
+    "sections": "Sections",
+    "decks": "Decks",
+    "rooms": "Rooms",
+    "back": "Back",
+    "open": "Open",
+    "noDecks": "This section has no walkable decks.",
+    "plan": "Deck plan",
+    "corridor": "Longitudinal corridor, 4 m wide, running the whole ring",
+    "perSector": "per sector",
+    "sectors": "four identical sectors per ring"
+  },
+  "deck": {
+    "radius": "Radius",
+    "gravity": "Gravity",
+    "sectorLength": "Sector length",
+    "sectorArea": "Sector area",
+    "roomArea": "Room area",
+    "rimSpeed": "Rim speed",
+    "coriolis": "Coriolis at 1.5 m/s"
+  },
+  "room": {
+    "area": "Area",
+    "share": "Share of the deck",
+    "allSectors": "across all four sectors"
+  },
+  "phase": {
+    "tow": "Tow",
+    "acceleration": "Acceleration",
+    "cruise": "Cruise",
+    "braking": "Braking"
   }
 }

@@ -1,20 +1,20 @@
 // Design reference: CLAUDE.md, colour palette and mobile-first rules
-import { Navigate, Route, Routes } from 'react-router-dom';
-import AppShell from './presentation/components/AppShell.jsx';
-import OverviewPage from './presentation/pages/OverviewPage.jsx';
-import ShipPage from './presentation/pages/ShipPage.jsx';
-import FlightPage from './presentation/pages/FlightPage.jsx';
+import { Route, Routes } from 'react-router-dom';
+import PresentationPage from './presentation/pages/PresentationPage.jsx';
 import { ROUTES } from './domain/constants/routes.js';
 
+/**
+ * One page for all three paths. The ship and the journey are two focuses of
+ * the same view, not two pages, so navigating between them must never unmount
+ * the canvas and take the WebGL context with it.
+ */
 export default function App() {
   return (
-    <AppShell>
-      <Routes>
-        <Route path={ROUTES.overview} element={<OverviewPage />} />
-        <Route path={ROUTES.ship} element={<ShipPage />} />
-        <Route path={ROUTES.flight} element={<FlightPage />} />
-        <Route path="*" element={<Navigate to={ROUTES.overview} replace />} />
-      </Routes>
-    </AppShell>
+    <Routes>
+      <Route path={ROUTES.overview} element={<PresentationPage />} />
+      <Route path={ROUTES.ship} element={<PresentationPage />} />
+      <Route path={ROUTES.flight} element={<PresentationPage />} />
+      <Route path="*" element={<PresentationPage />} />
+    </Routes>
   );
 }

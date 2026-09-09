@@ -1,0 +1,30 @@
+.focus-switch {
+  display: inline-flex;
+  gap: 1px;
+  padding: 1px;
+  background: var(--color-rule);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+
+.focus-switch__option {
+  border: none;
+  background: var(--color-panel);
+  color: var(--color-dim);
+  font-size: var(--text-body);
+  padding: 0 var(--space-4);
+  min-height: var(--size-touch);
+  cursor: pointer;
+}
+
+.focus-switch__option--active {
+  color: var(--color-hull);
+  background: var(--color-brass);
+  font-weight: 600;
+}
+
+@media (min-width: 1024px) {
+  .focus-switch__option {
+    min-height: 32px;
+  }
+}

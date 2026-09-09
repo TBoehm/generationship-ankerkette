@@ -1,0 +1,20 @@
+.ship-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-key);
+  color: var(--color-dim);
+}
+
+.ship-readout__value {
+  color: var(--color-brass);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-left: var(--space-1);
+}
+
+.ship-readout__unit {
+  color: var(--color-dim);
+  font-weight: 400;
+}
