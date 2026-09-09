@@ -36,7 +36,7 @@ export default [
   },
   {
     // The domain layer must not reach into the outer layers or the browser.
-    files: ['src/domain/**/*.js'],
+    files: ['src/domain/**/*.{js,jsx}'],
     languageOptions: { globals: {} },
     rules: {
       'no-restricted-imports': [
@@ -61,7 +61,7 @@ export default [
   },
   {
     // Infrastructure adapts the outside world, it must not know the UI.
-    files: ['src/infrastructure/**/*.js'],
+    files: ['src/infrastructure/**/*.{js,jsx}'],
     rules: {
       'no-restricted-imports': [
         'error',

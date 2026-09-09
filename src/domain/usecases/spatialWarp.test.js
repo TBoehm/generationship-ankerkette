@@ -73,4 +73,23 @@ describe('displayRadius', () => {
     const trueAngle = 0.05;
     expect(displayRadius(trueAngle, 1, 1, true)).toBeCloseTo(trueAngle, 9);
   });
+
+  it('never returns less than the true angular size, at any angle', () => {
+    for (let exponent = -9; exponent <= 0; exponent += 0.05) {
+      const angle = Math.pow(10, exponent);
+      expect(displayRadius(angle, 1, 1, true)).toBeGreaterThanOrEqual(
+        displayRadius(angle, 1, 1, false) - 1e-15
+      );
+    }
+  });
+
+  it('boosts right up to the crossover at 1.8044 degrees, not to 1.6', () => {
+    // The two branches meet where angle equals the lifted value. Solved
+    // numerically that is 0.031492 rad. An angle just below it must still be
+    // lifted, which a crossover taken from the rounded 1.6 degrees would miss.
+    const belowCrossover = 0.0279;
+    expect(displayRadius(belowCrossover, 1, 1, true)).toBeGreaterThan(belowCrossover);
+    const aboveCrossover = 0.0316;
+    expect(displayRadius(aboveCrossover, 1, 1, true)).toBeCloseTo(aboveCrossover, 9);
+  });
 });

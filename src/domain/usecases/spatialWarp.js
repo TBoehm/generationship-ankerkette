@@ -6,7 +6,6 @@ const SYSTEM_REFERENCE = 0.002;
 const SYSTEM_SCALE = 12.6;
 const BOOST_COEFFICIENT = 0.0042;
 const BOOST_FLOOR = 1e-9;
-const BOOST_CROSSOVER = 0.0279;
 
 /**
  * Eight orders of magnitude do not fit a scene linearly, so lengths are
@@ -42,14 +41,16 @@ export function warpFactor(length, parameters) {
 /**
  * Radii are scaled by the same factor as distances, which keeps the angular
  * diameter seen from the ship exact. Everything then falls below a pixel, so
- * small angles are lifted logarithmically. The two branches cross at about
- * 1.6 degrees.
+ * small angles are lifted logarithmically.
+ *
+ * The lift is a maximum against the true angle, never a branch on a hand
+ * written threshold: the two curves meet at 0.031492 rad, and any constant
+ * rounded off that crossing silently returns radii too small just below it.
  */
 export function displayRadius(radiusInAu, trueLength, warpedLength, boost) {
   const angle = radiusInAu / Math.max(trueLength, 1e-12);
-  const shown =
-    boost && angle < BOOST_CROSSOVER
-      ? Math.max(angle, BOOST_COEFFICIENT * Math.log10(1 + angle / BOOST_FLOOR))
-      : angle;
+  const shown = boost
+    ? Math.max(angle, BOOST_COEFFICIENT * Math.log10(1 + angle / BOOST_FLOOR))
+    : angle;
   return shown * warpedLength;
 }

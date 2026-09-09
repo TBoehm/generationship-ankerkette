@@ -223,7 +223,10 @@ werden kleine Winkel logarithmisch angehoben:
 ```
 α' = max(α, 0.0042 · log10(1 + α / 1e-9))
 ```
-Der Übergang liegt bei etwa 1,6 Grad: darüber echte Größe, darunter angehoben.
+Die beiden Zweige schneiden sich bei 0,031492 rad, also 1,80 Grad: darüber echte
+Größe, darunter angehoben. Der Code verzweigt nicht auf diese Schwelle, sondern
+nimmt das Maximum beider Terme. Eine von Hand notierte Schwelle liefert sonst
+knapp darunter zu kleine Radien, bei 1,6 Grad bis zu 10,8 %.
 Umschaltbar über den Knopf "Größen betont / Größen echt".
 
 ### Logarithmischer Zeitregler
